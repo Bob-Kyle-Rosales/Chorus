@@ -2,67 +2,201 @@
 # The Synthesizer agent — the final node in the Chorus pipeline.
 #
 # Responsibility:
-#   Receives all researcher outputs AND the critic's assessment, then
-#   reconciles them into a single structured final report. It resolves
-#   contradictions, highlights contested points, and produces a
-#   TL;DR with an overall confidence rating.
+#   Takes everything produced by the pipeline — the question, all researcher
+#   findings, and the critic's assessment — and assembles a final structured
+#   Report that the user actually reads.
 #
 # Why it runs last:
-#   The graph enforces critic → synthesizer ordering. The Synthesizer
-#   uses the Critique to decide which findings to trust, which to flag
-#   as contested, and what confidence level to assign the overall report.
+#   The graph enforces critic → synthesizer ordering. The Synthesizer uses
+#   the Critique to decide which findings to trust, which to flag as contested,
+#   and what overall confidence level to assign the report.
 #
-# In Phase 1 (real implementation):
-#   Will call Groq + Llama 3.1 70B with all findings + critique as context
-#   and ask it to produce a structured Report using JSON mode + Pydantic validation.
+# Why ainvoke (not astream)?
+#   The Synthesizer produces a structured Report object. We need the complete
+#   JSON before we can validate it with Pydantic and send report.ready.
 #
-# Currently (stub):
-#   Flattens all findings from all researchers into one list and
-#   builds a minimal Report with placeholder text.
+# Model: smart_llm (Llama 3.3 70B)
+#   Reconciling contradictions, weighing confidence levels, and producing a
+#   coherent structured report requires strong reasoning. Use the 70B model.
 
-from datetime import datetime, timezone  # for timestamping the generated report
-from chorus.graph.state import GraphState  # shared state — we read everything from it
-from chorus.schemas import Report          # the final report data shape
+import json
+from datetime import datetime, timezone
+from langchain_core.messages import SystemMessage, HumanMessage
+
+from chorus.graph.state import GraphState
+from chorus.llm import smart_llm
+from chorus.schemas import Citation, ContestedPoint, Finding, Report
+
+
+# ---------------------------------------------------------------------------
+# System prompt
+# ---------------------------------------------------------------------------
+SYSTEM_PROMPT = """You are a research synthesizer. Your job is to take findings from
+multiple researchers and a critic's assessment, then produce a final structured report.
+
+Reconcile contradictions identified by the critic. Highlight contested points where
+researchers disagreed. Assign an overall confidence level based on the quality of evidence.
+
+Return a JSON object with this exact structure:
+{
+  "tl_dr": "2-3 sentence summary of the key findings",
+  "key_findings": [
+    {
+      "claim": "A specific, important finding",
+      "support": "The evidence behind this finding",
+      "confidence": "low" | "medium" | "high"
+    }
+  ],
+  "contested_points": [
+    {
+      "topic": "What the disagreement is about",
+      "positions": ["Position A", "Position B"]
+    }
+  ],
+  "confidence_overall": "low" | "medium" | "high"
+}
+
+Rules:
+- tl_dr must be concise — 2-3 sentences maximum
+- Include 3-6 key findings — the most important and well-supported ones
+- Only include contested_points where there is genuine disagreement
+- confidence_overall: "high" if most findings are well-supported, "medium" if mixed,
+  "low" if findings are mostly speculative or contradictory
+- Return ONLY the JSON object. No markdown, no explanation."""
+
+
+def _format_context(state: GraphState) -> str:
+    """
+    Formats the full research context — all findings and the critique —
+    into a single text block for the Synthesizer's prompt.
+    """
+    lines = [f"Research Question: {state['question']}\n"]
+
+    # All researcher findings
+    lines.append("## Researcher Findings\n")
+    for output in state["researcher_outputs"]:
+        lines.append(f"### {output.angle_id}")
+        for f in output.findings:
+            lines.append(f"- [{f.confidence}] {f.claim}")
+            lines.append(f"  Evidence: {f.support[:300]}")
+        lines.append("")
+
+    # Critic's assessment
+    critique = state["critique"]
+    if critique:
+        lines.append("## Critic's Assessment\n")
+        if critique.contradictions:
+            lines.append("Contradictions identified:")
+            for c in critique.contradictions:
+                lines.append(f"  - {c.claim_a} ↔ {c.claim_b}: {c.explanation}")
+        if critique.weak_claims:
+            lines.append("Weak claims flagged:")
+            for w in critique.weak_claims:
+                lines.append(f"  - {w.claim}: {w.reason}")
+        if critique.gaps:
+            lines.append("Gaps in coverage:")
+            for g in critique.gaps:
+                lines.append(f"  - {g}")
+
+    return "\n".join(lines)
+
+
+def _collect_all_citations(state: GraphState) -> list[Citation]:
+    """Collects all citations from all researcher findings, deduplicating by URL."""
+    seen_urls: set[str] = set()
+    citations: list[Citation] = []
+    for output in state["researcher_outputs"]:
+        for finding in output.findings:
+            for citation in finding.citations:
+                if citation.url not in seen_urls:
+                    seen_urls.add(citation.url)
+                    citations.append(citation)
+    return citations
 
 
 async def synthesizer_node(state: GraphState) -> dict:
     """
     Assembles the final research report from all agent outputs.
 
+    Reads the full GraphState — question, all researcher outputs, and critique —
+    and calls Groq to produce a structured Report object.
+
     Args:
-        state: the current GraphState — we read:
+        state: the current GraphState — reads:
                - state["question"]            : the original user question
-               - state["researcher_outputs"]  : all findings from all 3 researchers
-               - state["critique"]            : the critic's assessment (available but not
-                                               used in the stub — used in Phase 1)
+               - state["researcher_outputs"]  : all 3 researchers' findings
+               - state["critique"]            : the critic's assessment
 
     Returns:
-        A dict with "report" key containing the final Report object.
-        LangGraph merges this into GraphState as the last step before END.
-        The WebSocket handler then sends this as the "report.ready" event.
+        {"report": Report(...)} — the final output sent to the frontend as report.ready.
 
     Node position in pipeline: LAST — runs after the critic finishes.
     """
 
-    # Flatten all findings from all 3 researchers into one combined list.
-    # state["researcher_outputs"] is a list of ResearcherOutput objects.
-    # Each ResearcherOutput has a .findings list.
-    # This list comprehension loops through each output and each finding within it.
-    # Example: [[finding_A, finding_B], [finding_C], [finding_D]] → [A, B, C, D]
-    all_findings = [
-        finding
-        for output in state["researcher_outputs"]
-        for finding in output.findings
+    context = _format_context(state)
+
+    messages = [
+        SystemMessage(content=SYSTEM_PROMPT),
+        HumanMessage(content=f"{context}\n\nSynthesize these findings into a final report."),
     ]
 
-    return {
-        "report": Report(
-            question=state["question"],               # echo back the original question
-            tl_dr="Stub report — real synthesis pending.",  # placeholder summary
-            key_findings=all_findings,                # all collected findings from all researchers
-            contested_points=[],                      # Phase 1: populated from contradictions in critique
-            sources=[],                               # Phase 1: aggregated from all finding citations
-            confidence_overall="low",                 # stubs are always low confidence
-            generated_at=datetime.now(tz=timezone.utc),  # timestamp with UTC timezone
+    # ainvoke — wait for complete structured response
+    response = await smart_llm.ainvoke(messages)
+
+    # Strip markdown fences if present
+    raw_content = response.content.strip()
+    if raw_content.startswith("```"):
+        raw_content = raw_content.split("\n", 1)[-1]
+        raw_content = raw_content.rsplit("```", 1)[0].strip()
+
+    # Collect all citations from all researchers for the report's source list
+    all_citations = _collect_all_citations(state)
+
+    try:
+        data = json.loads(raw_content)
+
+        # Build Finding objects for key findings
+        key_findings = [
+            Finding(
+                claim=f["claim"],
+                support=f["support"],
+                citations=[],   # key findings reference the full sources list
+                confidence=f.get("confidence", "medium"),
+            )
+            for f in data.get("key_findings", [])
+        ]
+
+        # Build ContestedPoint objects
+        contested_points = [
+            ContestedPoint(
+                topic=cp["topic"],
+                positions=cp["positions"],
+                sources=[],   # contested points reference the full sources list
+            )
+            for cp in data.get("contested_points", [])
+        ]
+
+        report = Report(
+            question=state["question"],
+            tl_dr=data.get("tl_dr", ""),
+            key_findings=key_findings,
+            contested_points=contested_points,
+            sources=all_citations,
+            confidence_overall=data.get("confidence_overall", "medium"),
+            generated_at=datetime.now(tz=timezone.utc),
         )
-    }
+
+    except (json.JSONDecodeError, KeyError):
+        # If parsing fails, produce a minimal report from raw researcher outputs
+        all_findings = [f for o in state["researcher_outputs"] for f in o.findings]
+        report = Report(
+            question=state["question"],
+            tl_dr="Report generation encountered an error. Raw findings are included below.",
+            key_findings=all_findings,
+            contested_points=[],
+            sources=all_citations,
+            confidence_overall="low",
+            generated_at=datetime.now(tz=timezone.utc),
+        )
+
+    return {"report": report}

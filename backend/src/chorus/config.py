@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     For example, if GROQ_API_KEY=abc123 is set in the environment,
     settings.groq_api_key will be "abc123" without any extra code.
 
-    SettingsConfigDict(env_file=".env") tells it to also look in a
-    local .env file, which is convenient for development.
+    SettingsConfigDict(env_file=".env") looks for .env relative to where
+    uvicorn is launched from — backend/.env when running from backend/.
     extra="ignore" means unknown env vars are silently skipped
     instead of causing an error.
     """
