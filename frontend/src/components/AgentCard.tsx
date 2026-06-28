@@ -42,7 +42,7 @@ export function AgentCard({ agent }: { agent: AgentState }) {
         </CardHeader>
         <CardContent>
           <pre className="text-xs text-white/60 whitespace-pre-wrap font-mono leading-relaxed max-h-40 overflow-y-auto">
-            {agent.tokens || "Waiting..."}
+            {agent.tokens || (agent.status === "finished" ? "Done." : "Waiting...")}
           </pre>
         </CardContent>
       </Card>
