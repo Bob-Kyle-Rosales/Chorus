@@ -39,7 +39,7 @@ export default function HomePage() {
   const {
     sessions, addSession, initRunState,
     handleSessionEvent, addConnection, removeConnection,
-    activeConnections,
+    activeConnections, setCredits,
   } = useSessionStore()
 
   const [step, setStep] = useState<Step>("input")
@@ -92,6 +92,11 @@ export default function HomePage() {
     try {
       const session = await api.post<Session>("/sessions", { preview_id: previewId })
       addSession(session)
+
+      // POST /sessions deducted 5 credits server-side — sync balance
+      api.get<{ balance: number }>("/credits")
+        .then(({ balance }) => setCredits(balance))
+        .catch(() => {})
 
       // Initialise a clean run state for this session BEFORE the WebSocket opens
       initRunState(session.id)

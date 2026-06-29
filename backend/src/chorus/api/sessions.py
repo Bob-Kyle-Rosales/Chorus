@@ -36,6 +36,7 @@ from chorus.schemas import (
     StoreReportRequest,
 )
 from chorus.services.followup_router import route_followup
+from chorus.api.credits import spend as spend_credits
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -118,6 +119,10 @@ async def create_session(
         )
     if preview["user_id"] != current_user["user_id"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your preview.")
+
+    # Deduct 5 credits for the full pipeline run.
+    # spend_credits raises HTTP 402 if the user has insufficient credits.
+    spend_credits(current_user["user_id"], 5)
 
     now = datetime.now(timezone.utc)
     session_id = str(uuid.uuid4())
@@ -281,6 +286,10 @@ async def followup(
     decision = route_followup(body.question, findings_text)
 
     if decision == "reasoning":
+        # Deduct 1 credit for reasoning follow-up (before calling the LLM so that
+        # a failed LLM call still doesn't double-charge on retry).
+        spend_credits(current_user["user_id"], 1)
+
         findings_summary = "\n".join(
             f"- [{f.get('confidence', 'medium')}] {f.get('claim', '')}: "
             f"{f.get('support', '')[:300]}"
@@ -300,7 +309,10 @@ async def followup(
         response = await smart_llm.ainvoke(messages)
         return {"type": "reasoning", "answer": response.content.strip()}
 
-    # Pipeline — return a new run_id; frontend opens WebSocket
+    # Pipeline follow-up — return a run_id but do NOT deduct credits here.
+    # The frontend shows CreditWarning, and the user confirms via POST /credits/deduct
+    # before opening the WebSocket. This ensures credits are only charged
+    # after explicit user confirmation.
     return {"type": "pipeline", "run_id": str(uuid.uuid4())}
 
 

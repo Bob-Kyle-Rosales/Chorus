@@ -33,7 +33,7 @@ export default function RunPage() {
 
   const {
     runStates, activeConnections, credits,
-    setCurrentSessionId, updateSessionName,
+    setCurrentSessionId, updateSessionName, setCredits,
     handleSessionEvent, handleFollowUpEvent,
     addUserMessage, addReasoningMessage,
     addPipelineFollowUp, setFollowUpStatus,
@@ -80,6 +80,10 @@ export default function RunPage() {
       if (result.type === "reasoning") {
         addReasoningMessage(id, `${msgId}-r`, q, result.answer)
         setFollowUpStatus(id, "idle")
+        // Backend deducted 1 credit for reasoning — sync balance
+        api.get<{ balance: number }>("/credits")
+          .then(({ balance }) => setCredits(balance))
+          .catch(() => {})
       } else {
         setPendingPipeline({ msgId: `${msgId}-p`, runId: result.run_id, question: q })
         setFollowUpStatus(id, "idle")
@@ -89,20 +93,27 @@ export default function RunPage() {
     }
   }
 
-  // ── Confirm follow-up pipeline run (after credit warning) ───────────
-  function confirmPipeline() {
+  // ── Confirm follow-up pipeline run (after CreditWarning) ───────────
+  async function confirmPipeline() {
     if (!pendingPipeline) return
     const { msgId, runId, question: q } = pendingPipeline
     setPendingPipeline(null)
 
+    // Deduct 5 credits explicitly — the routing call did not deduct them.
+    // This is the user's confirmation that they accept the cost.
+    try {
+      const { balance } = await api.post<{ balance: number }>("/credits/deduct", { amount: 5 })
+      setCredits(balance)
+    } catch {
+      // 402: insufficient credits — CreditWarning already shows the balance,
+      // the user shouldn't be able to confirm. Guard here just in case.
+      return
+    }
+
     addPipelineFollowUp(id, msgId, q, runId)
     setFollowUpStatus(id, "active")
 
-    const ws = createRunSocket(
-      runId,
-      q,
-      (event) => handleFollowUpEvent(id, msgId, event),
-    )
+    const ws = createRunSocket(runId, q, (event) => handleFollowUpEvent(id, msgId, event))
     ws.onclose = () => setFollowUpStatus(id, "idle")
   }
 

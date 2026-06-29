@@ -70,6 +70,13 @@ class Settings(BaseSettings):
     refresh_expire_days: int = 7
 
     # ------------------------------------------------------------------
+    # Credit system
+    # daily_credits_limit: how many credits each user gets per calendar day (UTC).
+    # Credits reset to this value at UTC midnight.
+    # ------------------------------------------------------------------
+    daily_credits_limit: int = 20
+
+    # ------------------------------------------------------------------
     # Fetch safety (see SECURITY.md T3)
     # Maximum bytes to read from a fetched web page.
     # Prevents a single huge page from consuming excessive memory.

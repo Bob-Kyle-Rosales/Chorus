@@ -65,6 +65,7 @@ interface SessionStore {
   updateSessionName: (id: string, name: string) => void
   setCurrentSessionId: (id: string | null) => void
   setCredits: (n: number) => void
+  deductCredits: (amount: number) => void  // optimistic local deduction
 
   // ── Run state (all parameterized by sessionId) ────────────────────────
   initRunState: (sessionId: string) => void
@@ -112,6 +113,9 @@ export const useSessionStore = create<SessionStore>((set) => ({
   setCurrentSessionId: (id) => set({ currentSessionId: id }),
 
   setCredits: (n) => set({ credits: n }),
+
+  deductCredits: (amount) =>
+    set((s) => ({ credits: Math.max(0, s.credits - amount) })),
 
   // ── Run state ─────────────────────────────────────────────────────────
 

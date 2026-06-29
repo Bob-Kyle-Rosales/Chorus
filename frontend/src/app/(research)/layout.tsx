@@ -24,7 +24,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
 export default function ResearchLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { accessToken, setAuth, clearAuth } = useAuthStore()
-  const { setSessions } = useSessionStore()
+  const { setSessions, setCredits } = useSessionStore()
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
@@ -52,13 +52,11 @@ export default function ResearchLayout({ children }: { children: React.ReactNode
         }
       }
 
-      // Auth confirmed — fetch the session list for the sidebar
-      try {
-        const sessions = await api.get<Session[]>("/sessions")
-        setSessions(sessions)
-      } catch {
-        // Non-fatal — sidebar will just show empty state
-      }
+      // Auth confirmed — fetch sessions + credit balance in parallel
+      await Promise.allSettled([
+        api.get<Session[]>("/sessions").then(setSessions),
+        api.get<{ balance: number }>("/credits").then(({ balance }) => setCredits(balance)),
+      ])
 
       setChecking(false)
     }

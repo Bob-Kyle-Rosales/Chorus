@@ -86,6 +86,18 @@ class FollowUpRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
 
 
+class CreditBalance(BaseModel):
+    """Returned by GET /credits and POST /credits/deduct."""
+    balance: int       # credits remaining today
+    limit: int         # daily limit (from config)
+    resets_at: str     # ISO 8601 UTC timestamp of next midnight reset
+
+
+class DeductRequest(BaseModel):
+    """Request body for POST /credits/deduct."""
+    amount: int = Field(gt=0, le=20)  # must be positive, max one day's worth
+
+
 # ---------------------------------------------------------------------------
 # INPUT
 # ---------------------------------------------------------------------------

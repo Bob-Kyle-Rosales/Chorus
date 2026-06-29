@@ -7,6 +7,7 @@ import { useAuthStore } from "@/lib/auth-store"
 import { api } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { PlusCircle, LogOut } from "lucide-react"
+import { CreditCounter } from "@/components/CreditCounter"
 import type { Session } from "@/types/events"
 
 function formatDate(iso: string): string {
@@ -108,10 +109,7 @@ export function SessionSidebar() {
 
       {/* Footer: credits + logout */}
       <div className="px-4 py-3 border-t border-white/5 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] text-white/30">Credits today</span>
-          <span className="text-[11px] font-mono text-white/50">{credits} ◉</span>
-        </div>
+        <CreditCounter credits={credits} showLabel />
         <button
           onClick={handleLogout}
           className="flex items-center gap-1.5 text-[11px] text-white/25 hover:text-white/50 transition-colors w-full"
