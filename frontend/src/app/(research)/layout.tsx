@@ -43,7 +43,12 @@ export default function ResearchLayout({ children }: { children: React.ReactNode
           // Temporarily write token so api.get can attach it
           useAuthStore.setState({ accessToken: access_token })
           token = access_token
-          const user = await api.get<{ id: string; first_name: string; last_name: string; email: string }>("/auth/me")
+          const user = await api.get<{
+            id: string
+            first_name: string
+            last_name: string
+            email: string
+          }>("/auth/me")
           setAuth(user, access_token)
         } catch {
           clearAuth()
@@ -66,18 +71,16 @@ export default function ResearchLayout({ children }: { children: React.ReactNode
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="text-white/20 text-sm font-mono animate-pulse">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
+        <div className="animate-pulse font-mono text-sm text-white/20">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen bg-zinc-950 text-white overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-zinc-950 text-white">
       <SessionSidebar />
-      <div className="flex-1 overflow-y-auto">
-        {children}
-      </div>
+      <div className="flex-1 overflow-y-auto">{children}</div>
     </div>
   )
 }

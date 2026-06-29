@@ -52,7 +52,7 @@ export interface Session {
   id: string
   name: string | null
   question: string
-  created_at: string   // ISO 8601 string from backend
+  created_at: string // ISO 8601 string from backend
   last_active: string
 }
 

@@ -17,28 +17,30 @@ export function MiniAgentCard({ agent }: MiniAgentCardProps) {
   return (
     <div className="flex items-start gap-3 py-2 text-xs">
       {/* Status indicator */}
-      <div className="shrink-0 mt-0.5 w-3.5 h-3.5 flex items-center justify-center">
+      <div className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center">
         {isFinished ? (
-          <Check className="w-3 h-3 text-emerald-400" />
+          <Check className="h-3 w-3 text-emerald-400" />
         ) : (
-          <span className="block w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+          <span className="block h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
         )}
       </div>
 
       {/* Agent name + live token preview when running */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <p className={`font-mono ${isFinished ? "text-white/30" : "text-white/60"}`}>
           {agent.agent_id}
         </p>
         {!isFinished && agent.tokens && (
-          <p className="text-[10px] text-white/20 truncate mt-0.5 leading-relaxed">
+          <p className="mt-0.5 truncate text-[10px] leading-relaxed text-white/20">
             {agent.tokens.slice(-140)}
           </p>
         )}
       </div>
 
       {/* Status label */}
-      <span className={`shrink-0 text-[10px] font-mono ${isFinished ? "text-white/20" : "text-yellow-400"}`}>
+      <span
+        className={`shrink-0 font-mono text-[10px] ${isFinished ? "text-white/20" : "text-yellow-400"}`}
+      >
         {isFinished ? "done" : "running"}
       </span>
     </div>

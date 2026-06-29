@@ -37,9 +37,14 @@ type Step = "input" | "planning" | "preview" | "starting"
 export default function HomePage() {
   const router = useRouter()
   const {
-    sessions, addSession, initRunState,
-    handleSessionEvent, addConnection, removeConnection,
-    activeConnections, setCredits,
+    sessions,
+    addSession,
+    initRunState,
+    handleSessionEvent,
+    addConnection,
+    removeConnection,
+    activeConnections,
+    setCredits,
   } = useSessionStore()
 
   const [step, setStep] = useState<Step>("input")
@@ -94,7 +99,8 @@ export default function HomePage() {
       addSession(session)
 
       // POST /sessions deducted 5 credits server-side — sync balance
-      api.get<{ balance: number }>("/credits")
+      api
+        .get<{ balance: number }>("/credits")
         .then(({ balance }) => setCredits(balance))
         .catch(() => {})
 
@@ -138,11 +144,9 @@ export default function HomePage() {
   const showPreview = step === "preview" || step === "starting"
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center p-8 min-h-full">
+    <main className="flex min-h-full flex-1 flex-col items-center justify-center p-8">
       <div className="w-full max-w-2xl space-y-8">
-
         <AnimatePresence mode="wait">
-
           {/* ── Step 1 & planning: question input ──────────────────────── */}
           {!showPreview && (
             <motion.div
@@ -154,15 +158,21 @@ export default function HomePage() {
               className="space-y-6 text-center"
             >
               <div>
-                <h1 className="text-3xl font-bold tracking-tight mb-2">
+                <h1 className="mb-2 text-3xl font-bold tracking-tight">
                   {sessions.length === 0 ? "What are you researching?" : "New research"}
                 </h1>
-                <p className="text-white/40 text-sm">
+                <p className="text-sm text-white/40">
                   Chorus will plan your research before you commit to running it.
                 </p>
               </div>
 
-              <form onSubmit={(e) => { e.preventDefault(); handlePlan() }} className="flex gap-3">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  handlePlan()
+                }}
+                className="flex gap-3"
+              >
                 <input
                   type="text"
                   autoFocus
@@ -170,16 +180,16 @@ export default function HomePage() {
                   onChange={(e) => setQuestion(e.target.value)}
                   disabled={isPlanning}
                   placeholder="Ask anything..."
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50"
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-white placeholder:text-white/30 focus:ring-2 focus:ring-white/20 focus:outline-none disabled:opacity-50"
                 />
                 <button
                   type="submit"
                   disabled={isPlanning || !question.trim()}
-                  className="bg-white text-zinc-950 font-semibold px-5 py-3 rounded-xl hover:bg-white/90 disabled:opacity-40 transition-colors whitespace-nowrap text-sm"
+                  className="rounded-xl bg-white px-5 py-3 text-sm font-semibold whitespace-nowrap text-zinc-950 transition-colors hover:bg-white/90 disabled:opacity-40"
                 >
                   {isPlanning ? (
                     <span className="flex items-center gap-2">
-                      <span className="w-3.5 h-3.5 border-2 border-zinc-400 border-t-zinc-900 rounded-full animate-spin" />
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-400 border-t-zinc-900" />
                       Planning...
                     </span>
                   ) : (
@@ -190,13 +200,13 @@ export default function HomePage() {
 
               {error && <p className="text-sm text-red-400">{error}</p>}
 
-              <div className="flex flex-wrap gap-2 justify-center">
+              <div className="flex flex-wrap justify-center gap-2">
                 {EXAMPLES.map((q) => (
                   <button
                     key={q}
                     onClick={() => setQuestion(q)}
                     disabled={isPlanning}
-                    className="text-xs text-white/30 hover:text-white/60 border border-white/10 rounded-full px-3 py-1 transition-colors disabled:opacity-30"
+                    className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/30 transition-colors hover:text-white/60 disabled:opacity-30"
                   >
                     {q}
                   </button>
@@ -204,14 +214,16 @@ export default function HomePage() {
               </div>
 
               {sessions.length > 0 && (
-                <div className="text-left border-t border-white/5 pt-6">
-                  <p className="text-xs text-white/30 uppercase tracking-widest mb-3">Recent sessions</p>
+                <div className="border-t border-white/5 pt-6 text-left">
+                  <p className="mb-3 text-xs tracking-widest text-white/30 uppercase">
+                    Recent sessions
+                  </p>
                   <div className="space-y-1.5">
                     {sessions.slice(0, 5).map((s) => (
                       <a
                         key={s.id}
                         href={`/run/${s.id}?q=${encodeURIComponent(s.question)}`}
-                        className="block text-sm text-white/50 hover:text-white/80 py-1.5 px-3 rounded-lg hover:bg-white/5 transition-colors truncate"
+                        className="block truncate rounded-lg px-3 py-1.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white/80"
                       >
                         {s.name ?? s.question}
                       </a>
@@ -240,7 +252,6 @@ export default function HomePage() {
               />
             </motion.div>
           )}
-
         </AnimatePresence>
       </div>
 

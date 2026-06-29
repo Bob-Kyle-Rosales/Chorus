@@ -29,21 +29,21 @@ export function PipelineFollowUp({ message }: PipelineFollowUpProps) {
       className="space-y-4"
     >
       {/* Cost label */}
-      <p className="text-[10px] font-mono text-white/20">· new research · 5 ◉</p>
+      <p className="font-mono text-[10px] text-white/20">· new research · 5 ◉</p>
 
       {/* Collapsible agent activity panel */}
       {agentList.length > 0 && (
-        <div className="border border-white/8 rounded-xl overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-white/8">
           {/* Always-visible header row */}
           <button
             onClick={() => setExpanded((e) => !e)}
-            className="w-full flex items-center justify-between px-4 py-3 text-xs text-white/40 hover:text-white/60 transition-colors"
+            className="flex w-full items-center justify-between px-4 py-3 text-xs text-white/40 transition-colors hover:text-white/60"
           >
             <span className="flex items-center gap-2">
               {expanded ? (
-                <ChevronDown className="w-3.5 h-3.5" />
+                <ChevronDown className="h-3.5 w-3.5" />
               ) : (
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="h-3.5 w-3.5" />
               )}
               Agent activity
             </span>
@@ -54,7 +54,7 @@ export function PipelineFollowUp({ message }: PipelineFollowUpProps) {
 
           {/* Expanded row list */}
           {expanded && (
-            <div className="px-4 pb-2 border-t border-white/5 divide-y divide-white/5">
+            <div className="divide-y divide-white/5 border-t border-white/5 px-4 pb-2">
               {agentList.map((agent) => (
                 <MiniAgentCard key={agent.agent_id} agent={agent} />
               ))}
@@ -65,12 +65,12 @@ export function PipelineFollowUp({ message }: PipelineFollowUpProps) {
 
       {/* Waiting to start (WebSocket not yet connected) */}
       {message.status === "running" && agentList.length === 0 && (
-        <p className="text-xs text-white/25 animate-pulse">Starting research pipeline...</p>
+        <p className="animate-pulse text-xs text-white/25">Starting research pipeline...</p>
       )}
 
       {/* Error */}
       {message.status === "error" && (
-        <p className="text-xs text-red-400 border border-red-500/20 bg-red-500/5 rounded-xl px-4 py-3">
+        <p className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs text-red-400">
           Research failed. Please try again.
         </p>
       )}

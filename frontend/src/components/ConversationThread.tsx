@@ -38,20 +38,19 @@ export function ConversationThread({
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-4xl mx-auto px-8 py-8 space-y-12">
-
+      <div className="mx-auto max-w-4xl space-y-12 px-8 py-8">
         {/* ── Original run ─────────────────────────────────────────── */}
         <div className="space-y-6">
           {/* Question header */}
           <header>
-            <p className="text-xs text-white/30 uppercase tracking-widest mb-1">Chorus</p>
-            <h1 className="text-2xl font-semibold leading-snug">{question}</h1>
+            <p className="mb-1 text-xs tracking-widest text-white/30 uppercase">Chorus</p>
+            <h1 className="text-2xl leading-snug font-semibold">{question}</h1>
           </header>
 
           {/* Agent cards grid */}
           {agentList.length > 0 && (
             <section className="space-y-3">
-              <p className="text-xs text-white/30 uppercase tracking-widest">Agents</p>
+              <p className="text-xs tracking-widest text-white/30 uppercase">Agents</p>
               <div className="grid gap-3 md:grid-cols-2">
                 {agentList.map((agent) => (
                   <AgentCard key={agent.agent_id} agent={agent} />
@@ -69,7 +68,7 @@ export function ConversationThread({
 
           {/* Error state for original run */}
           {runStatus === "error" && (
-            <div className="border border-red-500/20 bg-red-500/5 rounded-xl p-5 text-center">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-5 text-center">
               <p className="text-sm text-red-400">Research failed. Please start a new session.</p>
             </div>
           )}
@@ -81,8 +80,8 @@ export function ConversationThread({
             {msg.type === "user" && (
               /* User bubble — right-aligned */
               <div className="flex justify-end">
-                <div className="max-w-lg bg-white/8 border border-white/10 rounded-2xl rounded-tr-sm px-4 py-3">
-                  <p className="text-sm text-white/80 leading-relaxed">{msg.text}</p>
+                <div className="max-w-lg rounded-2xl rounded-tr-sm border border-white/10 bg-white/8 px-4 py-3">
+                  <p className="text-sm leading-relaxed text-white/80">{msg.text}</p>
                 </div>
               </div>
             )}

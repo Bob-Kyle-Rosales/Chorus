@@ -19,11 +19,11 @@ export function ReasoningResponse({ message }: ReasoningResponseProps) {
       className="space-y-2"
     >
       {/* Cost label */}
-      <p className="text-[10px] font-mono text-white/20">· reasoning · 1 ◉</p>
+      <p className="font-mono text-[10px] text-white/20">· reasoning · 1 ◉</p>
 
       {/* Answer bubble */}
-      <div className="border border-white/8 rounded-2xl rounded-tl-sm px-5 py-4 bg-white/3 max-w-2xl">
-        <p className="text-sm text-white/75 leading-relaxed whitespace-pre-wrap">
+      <div className="max-w-2xl rounded-2xl rounded-tl-sm border border-white/8 bg-white/3 px-5 py-4">
+        <p className="text-sm leading-relaxed whitespace-pre-wrap text-white/75">
           {message.answer}
         </p>
       </div>

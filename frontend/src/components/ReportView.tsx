@@ -17,12 +17,10 @@ const OVERALL_CONFIDENCE_STYLES: Record<string, string> = {
 function SectionHeader({ label, count }: { label: string; count?: number }) {
   return (
     <div className="flex items-center gap-3">
-      <h3 className="text-xs font-mono text-white/30 uppercase tracking-widest shrink-0">
+      <h3 className="shrink-0 font-mono text-xs tracking-widest text-white/30 uppercase">
         {label}
       </h3>
-      {count !== undefined && (
-        <span className="text-[10px] font-mono text-white/20">{count}</span>
-      )}
+      {count !== undefined && <span className="font-mono text-[10px] text-white/20">{count}</span>}
       <div className="flex-1 border-t border-white/5" />
     </div>
   )
@@ -42,11 +40,9 @@ export function ReportView({ report }: ReportViewProps) {
     >
       {/* ── Report header ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <p className="text-xs font-mono text-white/25 uppercase tracking-widest">
-          Research Report
-        </p>
+        <p className="font-mono text-xs tracking-widest text-white/25 uppercase">Research Report</p>
         <span
-          className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border ${OVERALL_CONFIDENCE_STYLES[report.confidence_overall]}`}
+          className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-wider uppercase ${OVERALL_CONFIDENCE_STYLES[report.confidence_overall]}`}
         >
           Overall · {report.confidence_overall}
         </span>
@@ -55,8 +51,8 @@ export function ReportView({ report }: ReportViewProps) {
       {/* ── Summary ───────────────────────────────────────────────── */}
       <div className="space-y-3">
         <SectionHeader label="Summary" />
-        <div className="border border-white/8 rounded-xl px-5 py-4 bg-white/3">
-          <p className="text-sm text-white/70 leading-relaxed">{report.tl_dr}</p>
+        <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-4">
+          <p className="text-sm leading-relaxed text-white/70">{report.tl_dr}</p>
         </div>
       </div>
 
@@ -66,12 +62,7 @@ export function ReportView({ report }: ReportViewProps) {
           <SectionHeader label="Key Findings" count={report.key_findings.length} />
           <div className="space-y-3">
             {report.key_findings.map((finding, i) => (
-              <FindingCard
-                key={i}
-                finding={finding}
-                index={i}
-                allSources={report.sources}
-              />
+              <FindingCard key={i} finding={finding} index={i} allSources={report.sources} />
             ))}
           </div>
         </div>
@@ -98,7 +89,7 @@ export function ReportView({ report }: ReportViewProps) {
       )}
 
       {/* ── Timestamp ─────────────────────────────────────────────── */}
-      <p className="text-[10px] font-mono text-white/15 text-right">
+      <p className="text-right font-mono text-[10px] text-white/15">
         Generated {new Date(report.generated_at).toLocaleString()}
       </p>
     </motion.div>

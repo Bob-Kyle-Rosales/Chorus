@@ -32,38 +32,34 @@ export function FindingCard({ finding, index, allSources }: FindingCardProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: index * 0.06 }}
-      className="border border-white/8 rounded-xl p-5 bg-white/3 space-y-3"
+      className="space-y-3 rounded-xl border border-white/8 bg-white/3 p-5"
     >
       {/* Row: index number + confidence badge */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-mono text-white/20">
+        <span className="font-mono text-xs text-white/20">
           {String(index + 1).padStart(2, "0")}
         </span>
         <span
-          className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${CONFIDENCE_STYLES[finding.confidence]}`}
+          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${CONFIDENCE_STYLES[finding.confidence]}`}
         >
           {finding.confidence}
         </span>
       </div>
 
       {/* Claim — the headline assertion */}
-      <p className="text-sm font-medium text-white leading-relaxed">
-        {finding.claim}
-      </p>
+      <p className="text-sm leading-relaxed font-medium text-white">{finding.claim}</p>
 
       {/* Support — the evidence explanation */}
-      <p className="text-xs text-white/50 leading-relaxed">
-        {finding.support}
-      </p>
+      <p className="text-xs leading-relaxed text-white/50">{finding.support}</p>
 
       {/* Source reference tags — e.g. [1] [3] */}
       {refNumbers.length > 0 && (
-        <div className="flex gap-1.5 flex-wrap pt-1 border-t border-white/5">
+        <div className="flex flex-wrap gap-1.5 border-t border-white/5 pt-1">
           <span className="text-[10px] text-white/20">Sources:</span>
           {refNumbers.map((n) => (
             <span
               key={n}
-              className="text-[10px] font-mono text-white/30 border border-white/10 rounded px-1.5 py-0.5"
+              className="rounded border border-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white/30"
             >
               [{n}]
             </span>

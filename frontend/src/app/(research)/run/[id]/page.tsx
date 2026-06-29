@@ -35,11 +35,17 @@ export default function RunPage() {
   const urlQuestion = searchParams.get("q") ?? ""
 
   const {
-    runStates, activeConnections, credits,
-    setCurrentSessionId, updateSessionName, setCredits,
+    runStates,
+    activeConnections,
+    credits,
+    setCurrentSessionId,
+    updateSessionName,
+    setCredits,
     handleFollowUpEvent,
-    addUserMessage, addReasoningMessage,
-    addPipelineFollowUp, setFollowUpStatus,
+    addUserMessage,
+    addReasoningMessage,
+    addPipelineFollowUp,
+    setFollowUpStatus,
     rehydrateSession,
   } = useSessionStore()
 
@@ -78,7 +84,8 @@ export default function RunPage() {
 
     if (!hasLiveState) {
       setRehydrating(true)
-      api.get<SessionDetail>(`/sessions/${id}`)
+      api
+        .get<SessionDetail>(`/sessions/${id}`)
         .then((detail) => {
           setFetchedQuestion(detail.question)
           rehydrateSession(id, detail)
@@ -98,7 +105,8 @@ export default function RunPage() {
   useEffect(() => {
     if (status !== "complete" || !report) return
     api.patch(`/sessions/${id}/report`, { report }).catch(() => {})
-    api.patch<{ name: string }>(`/sessions/${id}/name`)
+    api
+      .patch<{ name: string }>(`/sessions/${id}/name`)
       .then(({ name }) => updateSessionName(id, name))
       .catch(() => {})
   }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -117,10 +125,16 @@ export default function RunPage() {
 
       if (result.type === "reasoning") {
         addReasoningMessage(id, `${msgId}-r`, q, result.answer)
-        persistMessage({ id: `${msgId}-r`, role: "chorus", type: "reasoning", content: result.answer })
+        persistMessage({
+          id: `${msgId}-r`,
+          role: "chorus",
+          type: "reasoning",
+          content: result.answer,
+        })
         setFollowUpStatus(id, "idle")
         // Backend deducted 1 credit for reasoning — sync balance
-        api.get<{ balance: number }>("/credits")
+        api
+          .get<{ balance: number }>("/credits")
           .then(({ balance }) => setCredits(balance))
           .catch(() => {})
       } else {
@@ -166,8 +180,8 @@ export default function RunPage() {
   // ── Loading state while rehydrating from the database ──────────────
   if (rehydrating) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8">
-        <p className="text-white/20 text-sm font-mono animate-pulse">Loading session...</p>
+      <div className="flex flex-1 items-center justify-center p-8">
+        <p className="animate-pulse font-mono text-sm text-white/20">Loading session...</p>
       </div>
     )
   }
@@ -176,13 +190,11 @@ export default function RunPage() {
   const hasNoState = status === "idle" && !activeConnections[id]
   if (hasNoState && !report && conversation.length === 0 && Object.keys(agents).length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-        <p className="text-white/30 text-sm mb-4">
-          No active research for this session.
-        </p>
+      <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+        <p className="mb-4 text-sm text-white/30">No active research for this session.</p>
         <a
           href="/home"
-          className="text-xs text-white/40 hover:text-white/70 border border-white/10 rounded-xl px-4 py-2 transition-colors"
+          className="rounded-xl border border-white/10 px-4 py-2 text-xs text-white/40 transition-colors hover:text-white/70"
         >
           Start new research
         </a>
@@ -191,7 +203,7 @@ export default function RunPage() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       <ConversationThread
         question={question}
         runStatus={status}

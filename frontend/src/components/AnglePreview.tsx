@@ -16,7 +16,7 @@ interface AnglePreviewProps {
   angles: AnglePlan[]
   onBack: () => void
   onConfirm: () => void
-  loading: boolean  // true while POST /sessions is in flight
+  loading: boolean // true while POST /sessions is in flight
 }
 
 export function AnglePreview({ question, angles, onBack, onConfirm, loading }: AnglePreviewProps) {
@@ -29,31 +29,31 @@ export function AnglePreview({ question, angles, onBack, onConfirm, loading }: A
     >
       {/* Question echo */}
       <div>
-        <p className="text-xs text-white/30 uppercase tracking-widest mb-2">Your question</p>
-        <p className="text-white/70 text-sm leading-relaxed italic">{question}</p>
+        <p className="mb-2 text-xs tracking-widest text-white/30 uppercase">Your question</p>
+        <p className="text-sm leading-relaxed text-white/70 italic">{question}</p>
       </div>
 
       {/* Angle cards */}
       <div className="space-y-3">
-        <p className="text-xs text-white/30 uppercase tracking-widest">Research plan</p>
+        <p className="text-xs tracking-widest text-white/30 uppercase">Research plan</p>
         {angles.map((angle, i) => (
           <motion.div
             key={angle.angle_id}
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.2, delay: i * 0.07 }}
-            className={`border rounded-xl px-5 py-4 flex gap-4 items-start ${ANGLE_COLORS[i] ?? "text-white/50 border-white/10 bg-white/3"}`}
+            className={`flex items-start gap-4 rounded-xl border px-5 py-4 ${ANGLE_COLORS[i] ?? "border-white/10 bg-white/3 text-white/50"}`}
           >
             {/* Index number */}
-            <span className="font-mono text-xs opacity-40 pt-0.5 shrink-0 w-5">
+            <span className="w-5 shrink-0 pt-0.5 font-mono text-xs opacity-40">
               {String(i + 1).padStart(2, "0")}
             </span>
 
-            <div className="space-y-1 min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
+            <div className="min-w-0 space-y-1">
+              <p className="text-xs font-semibold tracking-wide uppercase opacity-70">
                 {angle.angle_id.replace(/_/g, " ")}
               </p>
-              <p className="text-sm opacity-80 leading-relaxed">{angle.brief}</p>
+              <p className="text-sm leading-relaxed opacity-80">{angle.brief}</p>
             </div>
           </motion.div>
         ))}
@@ -64,22 +64,24 @@ export function AnglePreview({ question, angles, onBack, onConfirm, loading }: A
         <button
           onClick={onBack}
           disabled={loading}
-          className="flex items-center gap-1.5 text-sm text-white/40 hover:text-white/70 border border-white/10 rounded-xl px-4 py-2.5 transition-colors disabled:opacity-30"
+          className="flex items-center gap-1.5 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/40 transition-colors hover:text-white/70 disabled:opacity-30"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
+          <ArrowLeft className="h-3.5 w-3.5" />
           Different question
         </button>
 
         <button
           onClick={onConfirm}
           disabled={loading}
-          className="flex items-center gap-2 bg-white text-zinc-950 font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-white/90 disabled:opacity-40 transition-colors ml-auto"
+          className="ml-auto flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-white/90 disabled:opacity-40"
         >
-          {loading ? "Starting..." : (
+          {loading ? (
+            "Starting..."
+          ) : (
             <>
               Start research
-              <span className="text-zinc-500 font-normal">5 ◉</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span className="font-normal text-zinc-500">5 ◉</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </>
           )}
         </button>
