@@ -18,6 +18,8 @@ from pydantic import BaseModel, Field
 
 class UserCreate(BaseModel):
     """Request body for POST /auth/register."""
+    first_name: str = Field(min_length=1, max_length=64)
+    last_name: str = Field(min_length=1, max_length=64)
     email: str = Field(min_length=5, max_length=254)
     password: str = Field(min_length=8, max_length=128)
 
@@ -37,6 +39,8 @@ class TokenResponse(BaseModel):
 class UserOut(BaseModel):
     """Public user info — never includes the hashed password."""
     id: str
+    first_name: str
+    last_name: str
     email: str
 
 

@@ -1,4 +1,3 @@
-# auth.py
 # JWT utilities, password hashing, and the user store (Postgres/SQLite via SQLAlchemy).
 #
 # Milestone 7: the user store now reads and writes the `users` table through an
@@ -31,7 +30,6 @@ from chorus.db.models import User
 
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
 def hash_password(password: str) -> str:
     return _pwd_context.hash(password)
 
@@ -39,12 +37,13 @@ def hash_password(password: str) -> str:
 def verify_password(plain: str, hashed: str) -> bool:
     return _pwd_context.verify(plain, hashed)
 
-
-# ---------------------------------------------------------------------------
-# User store — backed by the `users` table (db/models.py)
-# ---------------------------------------------------------------------------
-
-async def create_user(db: AsyncSession, email: str, password: str) -> User:
+async def create_user(
+    db: AsyncSession,
+    email: str,
+    password: str,
+    first_name: str,
+    last_name: str,
+) -> User:
     """Create and persist a new user. Raises ValueError if the email exists."""
     email = email.lower().strip()
     existing = await get_user_by_email(db, email)
@@ -54,6 +53,8 @@ async def create_user(db: AsyncSession, email: str, password: str) -> User:
         id=str(uuid.uuid4()),
         email=email,
         hashed_password=hash_password(password),
+        first_name=first_name.strip(),
+        last_name=last_name.strip(),
     )
     db.add(user)
     await db.flush()  # assign/validate row before the request-level commit

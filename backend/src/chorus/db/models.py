@@ -1,4 +1,3 @@
-# db/models.py
 # SQLAlchemy ORM models — the persistent schema for Chorus.
 #
 # Four tables:
@@ -31,6 +30,8 @@ class User(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     email: Mapped[str] = mapped_column(String(254), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(default=_utcnow)
 
     sessions: Mapped[list["ResearchSession"]] = relationship(

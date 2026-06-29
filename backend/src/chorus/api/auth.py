@@ -64,7 +64,7 @@ async def register(
     - Sets a refresh token in an httpOnly cookie.
     """
     try:
-        user = await create_user(db, body.email, body.password)
+        user = await create_user(db, body.email, body.password, body.first_name, body.last_name)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
@@ -131,11 +131,21 @@ async def refresh(
 
     return TokenResponse(access_token=new_access)
 
-
 @router.get("/me", response_model=UserOut)
-async def me(current_user: dict = Depends(get_current_user)) -> UserOut:
-    """Return the currently authenticated user's public info."""
-    return UserOut(id=current_user["user_id"], email=current_user["email"])
+async def me(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserOut:
+    """Return the currently authenticated user's public info (fresh from DB)."""
+    user = await get_user_by_id(db, current_user["user_id"])
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    return UserOut(
+        id=user.id,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        email=user.email,
+    )
 
 
 @router.post("/logout")

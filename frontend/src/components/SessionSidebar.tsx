@@ -58,7 +58,7 @@ export function SessionSidebar() {
   const router = useRouter()
   const pathname = usePathname()
   const { sessions, credits, activeConnections } = useSessionStore()
-  const { clearAuth } = useAuthStore()
+  const { clearAuth, user } = useAuthStore()
 
   async function handleLogout() {
     await api.post("/auth/logout").catch(() => {})
@@ -107,8 +107,13 @@ export function SessionSidebar() {
         )}
       </nav>
 
-      {/* Footer: credits + logout */}
+      {/* Footer: user name, credits, logout */}
       <div className="px-4 py-3 border-t border-white/5 space-y-2">
+        {user && (
+          <p className="text-[11px] text-white/40 truncate">
+            {user.first_name} {user.last_name}
+          </p>
+        )}
         <CreditCounter credits={credits} showLabel />
         <button
           onClick={handleLogout}

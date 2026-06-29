@@ -43,7 +43,7 @@ export default function ResearchLayout({ children }: { children: React.ReactNode
           // Temporarily write token so api.get can attach it
           useAuthStore.setState({ accessToken: access_token })
           token = access_token
-          const user = await api.get<{ id: string; email: string }>("/auth/me")
+          const user = await api.get<{ id: string; first_name: string; last_name: string; email: string }>("/auth/me")
           setAuth(user, access_token)
         } catch {
           clearAuth()

@@ -10,6 +10,8 @@ export default function SignUpPage() {
   const router = useRouter()
   const setAuth = useAuthStore((s) => s.setAuth)
 
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
@@ -20,6 +22,10 @@ export default function SignUpPage() {
     e.preventDefault()
     setError(null)
 
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Please enter your first and last name.")
+      return
+    }
     if (password !== confirm) {
       setError("Passwords do not match.")
       return
@@ -31,9 +37,14 @@ export default function SignUpPage() {
 
     setLoading(true)
     try {
-      const data = await api.post<{ access_token: string }>("/auth/register", { email, password })
+      const data = await api.post<{ access_token: string }>("/auth/register", {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email,
+        password,
+      })
       useAuthStore.setState({ accessToken: data.access_token })
-      const user = await api.get<{ id: string; email: string }>("/auth/me")
+      const user = await api.get<{ id: string; first_name: string; last_name: string; email: string }>("/auth/me")
       setAuth(user, data.access_token)
       router.push("/home")
     } catch (err) {
@@ -54,6 +65,41 @@ export default function SignUpPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name row — side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label htmlFor="firstName" className="text-xs text-white/50 uppercase tracking-wider">
+                First name
+              </label>
+              <input
+                id="firstName"
+                type="text"
+                autoComplete="given-name"
+                autoFocus
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Jane"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-white/20 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="lastName" className="text-xs text-white/50 uppercase tracking-wider">
+                Last name
+              </label>
+              <input
+                id="lastName"
+                type="text"
+                autoComplete="family-name"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Doe"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-white/20 text-sm"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label htmlFor="email" className="text-xs text-white/50 uppercase tracking-wider">
               Email
@@ -62,7 +108,6 @@ export default function SignUpPage() {
               id="email"
               type="email"
               autoComplete="email"
-              autoFocus
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
