@@ -1,4 +1,3 @@
-# schemas.py
 # Defines all the data shapes (contracts) used across the Chorus backend.
 # Every piece of data that flows between agents, gets stored, or gets sent
 # to the frontend is defined here as a Pydantic model.
@@ -11,6 +10,80 @@ from __future__ import annotations  # allows forward references in type hints (e
 from datetime import datetime        # used to timestamp citations and reports
 from typing import Literal           # restricts a field to a fixed set of allowed string values
 from pydantic import BaseModel, Field
+
+
+# ---------------------------------------------------------------------------
+# AUTH
+# ---------------------------------------------------------------------------
+
+class UserCreate(BaseModel):
+    """Request body for POST /auth/register."""
+    email: str = Field(min_length=5, max_length=254)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class UserLogin(BaseModel):
+    """Request body for POST /auth/login."""
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    """Returned by register and login. The refresh token is set as an httpOnly cookie."""
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserOut(BaseModel):
+    """Public user info — never includes the hashed password."""
+    id: str
+    email: str
+
+
+# ---------------------------------------------------------------------------
+# SESSIONS
+# ---------------------------------------------------------------------------
+
+class SessionPreviewRequest(BaseModel):
+    """Request body for POST /sessions/preview — runs planner only."""
+    question: str = Field(min_length=3, max_length=2000)
+
+
+class SessionPreviewOut(BaseModel):
+    """
+    Returned by POST /sessions/preview.
+    The frontend shows the angles to the user before committing to a full run.
+    preview_id is a short-lived token the client passes to POST /sessions to confirm.
+    """
+    preview_id: str
+    angles: list["AnglePlan"]
+
+
+class SessionCreateRequest(BaseModel):
+    """
+    Request body for POST /sessions.
+    preview_id must match a recent preview — proves the user reviewed the angles.
+    """
+    preview_id: str
+
+
+class SessionOut(BaseModel):
+    """Public representation of a session returned by GET /sessions and GET /sessions/{id}."""
+    id: str
+    name: str | None
+    question: str
+    created_at: datetime
+    last_active: datetime
+
+
+class StoreReportRequest(BaseModel):
+    """Request body for PATCH /sessions/{id}/report — stores the finished report for follow-up routing."""
+    report: dict  # raw Report JSON from the frontend
+
+
+class FollowUpRequest(BaseModel):
+    """Request body for POST /sessions/{id}/followup."""
+    question: str = Field(min_length=1, max_length=2000)
 
 
 # ---------------------------------------------------------------------------
