@@ -8,8 +8,10 @@
 // Navigating away does NOT close the connection — research continues in the
 // background. Navigating back shows the current state from the store.
 //
-// The page's useEffect only sets/clears currentSessionId for the sidebar highlight.
-// Nothing else runs on mount/unmount that could disrupt the live pipeline.
+// M7 addition: if there is no live state for this session (e.g. after a page
+// refresh — Zustand is in-memory), the page rehydrates from the database via
+// GET /sessions/{id}, restoring the report and the full conversation thread.
+// Every conversation message is persisted to the DB as it is created.
 
 import { useEffect, useState } from "react"
 import { useParams, useSearchParams } from "next/navigation"
@@ -19,6 +21,7 @@ import { CreditWarning } from "@/components/CreditWarning"
 import { useSessionStore, EMPTY_RUN_STATE } from "@/lib/store"
 import { createRunSocket } from "@/lib/websocket"
 import { api } from "@/lib/api"
+import type { SessionDetail } from "@/types/events"
 
 interface PendingPipeline {
   msgId: string
@@ -29,16 +32,15 @@ interface PendingPipeline {
 export default function RunPage() {
   const { id } = useParams<{ id: string }>()
   const searchParams = useSearchParams()
-  const question = searchParams.get("q") ?? ""
+  const urlQuestion = searchParams.get("q") ?? ""
 
   const {
     runStates, activeConnections, credits,
     setCurrentSessionId, updateSessionName, setCredits,
-    handleSessionEvent, handleFollowUpEvent,
+    handleFollowUpEvent,
     addUserMessage, addReasoningMessage,
     addPipelineFollowUp, setFollowUpStatus,
-    addConnection, removeConnection,
-    initRunState,
+    rehydrateSession,
   } = useSessionStore()
 
   // Read this session's run state from the store — never local component state
@@ -46,10 +48,45 @@ export default function RunPage() {
   const { status, agents, report, conversation, followUpStatus } = runState
 
   const [pendingPipeline, setPendingPipeline] = useState<PendingPipeline | null>(null)
+  const [rehydrating, setRehydrating] = useState(false)
+  // Question shown in the header — from the URL, or from the DB after rehydration
+  const [fetchedQuestion, setFetchedQuestion] = useState("")
+  const question = urlQuestion || fetchedQuestion
 
-  // ── Sidebar highlight only — no WebSocket side-effects ─────────────
+  // Fire-and-forget message persistence (Milestone 7).
+  // Frontend-driven so persisted message ids match the live ids in the store.
+  function persistMessage(msg: {
+    id: string
+    role: "user" | "chorus"
+    type: "user" | "reasoning" | "pipeline"
+    content?: string
+    report?: unknown
+  }) {
+    api.post(`/sessions/${id}/messages`, msg).catch(() => {})
+  }
+
+  // ── Sidebar highlight + rehydrate-on-mount ─────────────────────────
   useEffect(() => {
     setCurrentSessionId(id)
+
+    // If there is no live state for this session and no active connection,
+    // we likely arrived via refresh or a sidebar link — restore from the DB.
+    const cur = useSessionStore.getState().runStates[id]
+    const hasLiveState =
+      Boolean(useSessionStore.getState().activeConnections[id]) ||
+      Boolean(cur && (cur.status !== "idle" || cur.conversation.length > 0))
+
+    if (!hasLiveState) {
+      setRehydrating(true)
+      api.get<SessionDetail>(`/sessions/${id}`)
+        .then((detail) => {
+          setFetchedQuestion(detail.question)
+          rehydrateSession(id, detail)
+        })
+        .catch(() => {})
+        .finally(() => setRehydrating(false))
+    }
+
     return () => {
       setCurrentSessionId(null)
       // INTENTIONALLY do not close the WebSocket here.
@@ -70,6 +107,7 @@ export default function RunPage() {
   async function handleFollowUp(q: string) {
     const msgId = Date.now().toString()
     addUserMessage(id, msgId, q)
+    persistMessage({ id: msgId, role: "user", type: "user", content: q })
     setFollowUpStatus(id, "submitting")
 
     try {
@@ -79,6 +117,7 @@ export default function RunPage() {
 
       if (result.type === "reasoning") {
         addReasoningMessage(id, `${msgId}-r`, q, result.answer)
+        persistMessage({ id: `${msgId}-r`, role: "chorus", type: "reasoning", content: result.answer })
         setFollowUpStatus(id, "idle")
         // Backend deducted 1 credit for reasoning — sync balance
         api.get<{ balance: number }>("/credits")
@@ -110,16 +149,32 @@ export default function RunPage() {
       return
     }
 
+    // (the user question was already persisted in handleFollowUp)
     addPipelineFollowUp(id, msgId, q, runId)
     setFollowUpStatus(id, "active")
 
-    const ws = createRunSocket(runId, q, (event) => handleFollowUpEvent(id, msgId, event))
+    const ws = createRunSocket(runId, q, (event) => {
+      handleFollowUpEvent(id, msgId, event)
+      // Persist the pipeline follow-up report once it arrives over the WebSocket.
+      if (event.type === "report.ready") {
+        persistMessage({ id: msgId, role: "chorus", type: "pipeline", report: event.report })
+      }
+    })
     ws.onclose = () => setFollowUpStatus(id, "idle")
   }
 
-  // ── Empty state: direct URL access with no stored run state ─────────
+  // ── Loading state while rehydrating from the database ──────────────
+  if (rehydrating) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <p className="text-white/20 text-sm font-mono animate-pulse">Loading session...</p>
+      </div>
+    )
+  }
+
+  // ── Empty state: session has no report, no conversation, no live run ───
   const hasNoState = status === "idle" && !activeConnections[id]
-  if (hasNoState && Object.keys(agents).length === 0) {
+  if (hasNoState && !report && conversation.length === 0 && Object.keys(agents).length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
         <p className="text-white/30 text-sm mb-4">

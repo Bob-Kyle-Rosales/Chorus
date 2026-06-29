@@ -25,3 +25,8 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local SQLite database (dev persistence — Milestone 7)
+*.db
+backend/chorus.db
+backend/test_chorus.db

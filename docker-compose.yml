@@ -8,11 +8,31 @@
 #   api  — FastAPI backend (Python, port 8000)
 #   web  — Next.js frontend (Node.js, port 3000)
 #
-# Phase 2 additions (not yet):
-#   db    — Postgres for run history
-#   redis — Cache for search results
+# Phase 2 additions:
+#   db    — Postgres for session persistence (Milestone 7)
+#   redis — Cache for search results (not yet)
 
 services:
+
+  # --------------------------------------------------------------------------
+  # db — Postgres (session/message/credit persistence, Milestone 7)
+  # --------------------------------------------------------------------------
+  db:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=chorus
+      - POSTGRES_PASSWORD=chorus
+      - POSTGRES_DB=chorus
+    # Named volume so data survives container restarts.
+    volumes:
+      - chorus_pgdata:/var/lib/postgresql/data
+    # Healthcheck so `api` can wait until Postgres is actually ready,
+    # not just started.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chorus"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   # --------------------------------------------------------------------------
   # api — FastAPI backend
@@ -34,17 +54,23 @@ services:
     env_file:
       - .env
 
-    # Override allowed origins to include the Docker web service.
-    # Inside Docker, the frontend container is reachable at http://localhost:3000
-    # from the host browser, so this stays the same as local development.
     environment:
+      # Override allowed origins to include the Docker web service.
       - ALLOWED_ORIGINS=["http://localhost:3000"]
+      # Point the backend at the Postgres service (hostname = service name "db").
+      # Locally without Docker the app falls back to SQLite (see config.py default).
+      - DATABASE_URL=postgresql+asyncpg://chorus:chorus@db:5432/chorus
 
     # Hot-reload during development: mount source code as a volume.
     # Changes to Python files are picked up without rebuilding the image.
     # Remove this in a production deployment.
     volumes:
       - ./backend/src:/app/src
+
+    # Start only after Postgres reports healthy.
+    depends_on:
+      db:
+        condition: service_healthy
 
   # --------------------------------------------------------------------------
   # web — Next.js frontend
@@ -70,3 +96,7 @@ services:
     # This doesn't wait for the API to be healthy — just started.
     depends_on:
       - api
+
+# Named volumes — persist Postgres data across `docker compose down`/`up`.
+volumes:
+  chorus_pgdata:

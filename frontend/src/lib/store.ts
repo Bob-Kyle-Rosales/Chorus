@@ -5,9 +5,11 @@ import type {
   ConversationMessage,
   Critique,
   PipelineMessage,
+  PersistedMessage,
   Report,
   ServerEvent,
   Session,
+  SessionDetail,
 } from "@/types/events"
 
 // ---------------------------------------------------------------------------
@@ -69,6 +71,7 @@ interface SessionStore {
 
   // ── Run state (all parameterized by sessionId) ────────────────────────
   initRunState: (sessionId: string) => void
+  rehydrateSession: (sessionId: string, detail: SessionDetail) => void
   handleSessionEvent: (sessionId: string, event: ServerEvent) => void
   handleFollowUpEvent: (sessionId: string, messageId: string, event: ServerEvent) => void
   addUserMessage: (sessionId: string, id: string, text: string) => void
@@ -125,6 +128,51 @@ export const useSessionStore = create<SessionStore>((set) => ({
     set((s) => ({
       runStates: { ...s.runStates, [sessionId]: { ...EMPTY_RUN_STATE } },
     })),
+
+  // Rebuild a session's run state from persisted DB data (GET /sessions/{id}).
+  // Used when the user returns to a session after a page refresh — the live
+  // Zustand state is gone, but the report and conversation are in the database.
+  rehydrateSession: (sessionId, detail) => {
+    const conversation: ConversationMessage[] = detail.messages.map(
+      (m: PersistedMessage): ConversationMessage => {
+        if (m.type === "user") {
+          return { type: "user", id: m.id, text: m.content ?? "", timestamp: m.created_at }
+        }
+        if (m.type === "reasoning") {
+          return {
+            type: "reasoning",
+            id: m.id,
+            question: "",
+            answer: m.content ?? "",
+            timestamp: m.created_at,
+          }
+        }
+        // pipeline
+        return {
+          type: "pipeline",
+          id: m.id,
+          question: "",
+          runId: "",
+          agents: {},
+          report: m.report,
+          status: "complete",
+          timestamp: m.created_at,
+        }
+      },
+    )
+
+    set((s) => ({
+      runStates: {
+        ...s.runStates,
+        [sessionId]: {
+          ...EMPTY_RUN_STATE,
+          status: detail.report ? "complete" : "idle",
+          report: detail.report,
+          conversation,
+        },
+      },
+    }))
+  },
 
   // Dispatches original-pipeline WebSocket events into the correct session.
   handleSessionEvent: (sessionId, event) =>

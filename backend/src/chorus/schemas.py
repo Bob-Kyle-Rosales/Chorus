@@ -86,6 +86,39 @@ class FollowUpRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
 
 
+class MessageOut(BaseModel):
+    """One persisted conversation message returned in a session's detail view."""
+    id: str
+    role: str                 # "user" | "chorus"
+    type: str                 # "user" | "reasoning" | "pipeline"
+    content: str | None       # text for user / reasoning messages
+    report: dict | None       # report JSON for pipeline follow-up messages
+    created_at: datetime
+
+
+class SessionDetailOut(SessionOut):
+    """
+    Full session view returned by GET /sessions/{id}.
+    Extends SessionOut with the stored report and the conversation thread so the
+    frontend can rehydrate a session after a page refresh.
+    """
+    report: dict | None
+    messages: list[MessageOut]
+
+
+class AppendMessageRequest(BaseModel):
+    """
+    Request body for POST /sessions/{id}/messages.
+    Used by the frontend to persist pipeline follow-up messages (user question
+    + resulting report), which arrive over the WebSocket rather than via HTTP.
+    """
+    id: str
+    role: str = Field(pattern="^(user|chorus)$")
+    type: str = Field(pattern="^(user|reasoning|pipeline)$")
+    content: str | None = None
+    report: dict | None = None
+
+
 class CreditBalance(BaseModel):
     """Returned by GET /credits and POST /credits/deduct."""
     balance: int       # credits remaining today

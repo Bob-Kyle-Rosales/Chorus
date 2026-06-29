@@ -39,6 +39,12 @@ async def lifespan(app: FastAPI):
     # Import lazily so the app can be imported without graph.py existing yet.
     # This matters during early development when tasks are done incrementally.
     from chorus.graph.graph import build_graph
+    from chorus.db.database import engine, init_db
+
+    # Create all database tables that don't yet exist (users, sessions,
+    # messages, credits_ledger). Safe to run on every boot — it only creates
+    # missing tables. Uses SQLite locally, Postgres in production (DATABASE_URL).
+    await init_db()
 
     # Compile the LangGraph pipeline once and attach it to the app.
     # The compiled graph is stateless — it's safe to share across all concurrent runs.
@@ -53,8 +59,8 @@ async def lifespan(app: FastAPI):
 
     yield  # server is now running and accepting requests
 
-    # Shutdown logic would go here (e.g. close DB connections).
-    # Nothing to clean up yet in Phase 1.
+    # Shutdown: dispose the connection pool so the process exits cleanly.
+    await engine.dispose()
 
 
 # Create the FastAPI app instance and pass in the lifespan context manager.

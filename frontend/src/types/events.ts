@@ -61,6 +61,22 @@ export interface AnglePreviewResult {
   angles: AnglePlan[]
 }
 
+// One persisted conversation message from GET /sessions/{id} (Milestone 7)
+export interface PersistedMessage {
+  id: string
+  role: "user" | "chorus"
+  type: "user" | "reasoning" | "pipeline"
+  content: string | null
+  report: Report | null
+  created_at: string
+}
+
+// Full session detail used to rehydrate a session after a page refresh
+export interface SessionDetail extends Session {
+  report: Report | null
+  messages: PersistedMessage[]
+}
+
 // ---------------------------------------------------------------------------
 // Conversation thread — follow-up message types
 // ---------------------------------------------------------------------------

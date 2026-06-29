@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     # token_expire_minutes: short-lived access token (15 min is standard).
     # refresh_expire_days: long-lived refresh token stored in httpOnly cookie.
     # ------------------------------------------------------------------
-    jwt_secret: str = "dev-secret-change-in-production"
+    jwt_secret: str = "dev-secret-change-in-production-please"
     token_expire_minutes: int = 15
     refresh_expire_days: int = 7
 
@@ -75,6 +75,15 @@ class Settings(BaseSettings):
     # Credits reset to this value at UTC midnight.
     # ------------------------------------------------------------------
     daily_credits_limit: int = 20
+
+    # ------------------------------------------------------------------
+    # Database (Milestone 7 — persistence)
+    # SQLAlchemy async URL. Defaults to a local SQLite file so the app runs
+    # with no infrastructure. In production set DATABASE_URL to Postgres, e.g.
+    #   postgresql+asyncpg://user:pass@host:5432/chorus
+    # SQLAlchemy abstracts the dialect — the same models/queries work on both.
+    # ------------------------------------------------------------------
+    database_url: str = "sqlite+aiosqlite:///./chorus.db"
 
     # ------------------------------------------------------------------
     # Fetch safety (see SECURITY.md T3)

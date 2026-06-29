@@ -1,8 +1,9 @@
 # auth.py
-# JWT utilities, password hashing, and the in-memory user store.
+# JWT utilities, password hashing, and the user store (Postgres/SQLite via SQLAlchemy).
 #
-# In-memory store: a plain dict keyed by email. Fast for dev/demo.
-# Milestone 7 replaces this with Postgres — only this file changes.
+# Milestone 7: the user store now reads and writes the `users` table through an
+# AsyncSession instead of an in-memory dict. The store functions are async and
+# take a session argument; the JWT/password helpers are unchanged.
 #
 # Token model:
 #   Access token  — short-lived (15 min), sent as JSON, stored in JS memory
@@ -18,8 +19,11 @@ import jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from passlib.context import CryptContext
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from chorus.config import settings
+from chorus.db.models import User
 
 # ---------------------------------------------------------------------------
 # Password hashing
@@ -37,26 +41,33 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# In-memory user store
-# Replaced by Postgres in Milestone 7. Only this module reads/writes it.
+# User store — backed by the `users` table (db/models.py)
 # ---------------------------------------------------------------------------
 
-# Structure: { email: { "id": str, "email": str, "hashed_password": str } }
-_users: dict[str, dict] = {}
-
-
-def create_user(email: str, password: str) -> dict:
-    """Create and store a new user. Raises ValueError if email already exists."""
+async def create_user(db: AsyncSession, email: str, password: str) -> User:
+    """Create and persist a new user. Raises ValueError if the email exists."""
     email = email.lower().strip()
-    if email in _users:
+    existing = await get_user_by_email(db, email)
+    if existing:
         raise ValueError("Email already registered.")
-    user = {"id": str(uuid.uuid4()), "email": email, "hashed_password": hash_password(password)}
-    _users[email] = user
+    user = User(
+        id=str(uuid.uuid4()),
+        email=email,
+        hashed_password=hash_password(password),
+    )
+    db.add(user)
+    await db.flush()  # assign/validate row before the request-level commit
     return user
 
 
-def get_user_by_email(email: str) -> Optional[dict]:
-    return _users.get(email.lower().strip())
+async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
+    result = await db.execute(select(User).where(User.email == email.lower().strip()))
+    return result.scalar_one_or_none()
+
+
+async def get_user_by_id(db: AsyncSession, user_id: str) -> Optional[User]:
+    result = await db.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none()
 
 
 # ---------------------------------------------------------------------------

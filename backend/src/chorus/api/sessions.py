@@ -1,35 +1,41 @@
-# Session management endpoints.
+# Session management endpoints (Milestone 7 — persisted to the database).
 #
 # A session is one research thread — it begins with a question, goes through
-# the angle preview step, and then runs the full pipeline. In later milestones
-# a session will also hold follow-up messages. For now it stores the question,
-# the generated name, and timestamps.
+# the angle preview step, runs the full pipeline, and then accumulates follow-up
+# messages. Sessions and messages live in the database (db/models.py); only the
+# short-lived angle previews remain in-memory (single-use, fine to lose on restart).
 #
 # Endpoints:
-#   POST /sessions/preview        — run planner only, return angles for user review
-#   POST /sessions                — confirm angles, create session record, return session_id
-#   GET  /sessions                — list all sessions for the current user (newest first)
-#   GET  /sessions/{id}           — get one session's metadata
-#   PATCH /sessions/{id}/name     — generate a short name via fast_llm (called after report)
-#
-# In-memory stores: replaced by Postgres in Milestone 7.
-#   _previews — short-lived; holds angles between preview and confirm steps
-#   _sessions — persistent for the lifetime of the server process
+#   POST  /sessions/preview        — run planner only, return angles for review
+#   POST  /sessions                — confirm angles, create session row (5 ◉)
+#   GET   /sessions                — list the user's sessions (newest first)
+#   GET   /sessions/{id}           — full detail: metadata + report + messages
+#   PATCH /sessions/{id}/name      — generate a short name via fast_llm
+#   PATCH /sessions/{id}/report    — store the finished report on the session
+#   POST  /sessions/{id}/messages  — append a conversation message (frontend-driven)
+#   POST  /sessions/{id}/followup  — route + answer a follow-up question
 
 import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from langchain_core.messages import HumanMessage, SystemMessage
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from chorus.auth import get_current_user
+from chorus.db.database import get_db
+from chorus.db.models import Message, ResearchSession
 from chorus.graph.nodes.planner import planner_node
 from chorus.graph.state import GraphState
 from chorus.llm import fast_llm, smart_llm
 from chorus.schemas import (
     AnglePlan,
+    AppendMessageRequest,
     FollowUpRequest,
+    MessageOut,
     SessionCreateRequest,
+    SessionDetailOut,
     SessionOut,
     SessionPreviewOut,
     SessionPreviewRequest,
@@ -41,14 +47,11 @@ from chorus.api.credits import spend as spend_credits
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 # ---------------------------------------------------------------------------
-# In-memory stores (Milestone 7 → Postgres)
-# ---------------------------------------------------------------------------
-
+# In-memory preview store (transient — intentionally NOT persisted).
+# A preview only needs to live between "Plan research" and "Start research".
 # preview_id → { "question": str, "angles": list[AnglePlan], "user_id": str }
+# ---------------------------------------------------------------------------
 _previews: dict[str, dict] = {}
-
-# session_id → { "id", "user_id", "name", "question", "angles", "created_at", "last_active" }
-_sessions: dict[str, dict] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -61,17 +64,11 @@ async def preview_session(
     current_user: dict = Depends(get_current_user),
 ) -> SessionPreviewOut:
     """
-    Run the Planner node in isolation — no researchers, no pipeline.
-
-    Returns 3 investigative angles the user can review before committing
-    to a full 5-credit pipeline run. Takes 2-4 seconds (one fast_llm call).
-
-    The returned preview_id must be passed to POST /sessions within the same
-    server session to confirm the run. Previews are not persisted across restarts.
+    Run the Planner node in isolation — no researchers, no pipeline, 0 credits.
+    Returns 3 angles the user reviews before committing to a full run.
     """
     preview_id = str(uuid.uuid4())
 
-    # Build a minimal GraphState — planner_node only reads "question"
     state: GraphState = {
         "question": body.question,
         "run_id": preview_id,
@@ -101,15 +98,14 @@ async def preview_session(
 async def create_session(
     body: SessionCreateRequest,
     current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> SessionOut:
     """
-    Confirm a previewed angle plan and create the session record.
+    Confirm a previewed angle plan and create the persisted session row.
 
-    The session_id returned here doubles as the run_id for the WebSocket
-    endpoint — the frontend opens WS /ws/{session_id}?question=... immediately
-    after this call to start the pipeline.
-
-    Deletes the preview record once consumed (each preview is single-use).
+    The session_id doubles as the run_id for the WebSocket — the frontend opens
+    WS /ws/{session_id}?question=... right after this call to start the pipeline.
+    Deducts 5 credits (raises 402 if insufficient). Preview is single-use.
     """
     preview = _previews.get(body.preview_id)
     if not preview:
@@ -120,25 +116,25 @@ async def create_session(
     if preview["user_id"] != current_user["user_id"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your preview.")
 
-    # Deduct 5 credits for the full pipeline run.
-    # spend_credits raises HTTP 402 if the user has insufficient credits.
-    spend_credits(current_user["user_id"], 5)
+    # Deduct 5 credits for the full pipeline run (402 if insufficient).
+    await spend_credits(db, current_user["user_id"], 5)
 
     now = datetime.now(timezone.utc)
-    session_id = str(uuid.uuid4())
+    session = ResearchSession(
+        id=str(uuid.uuid4()),
+        user_id=current_user["user_id"],
+        name=None,
+        question=preview["question"],
+        angles=[a.model_dump() for a in preview["angles"]],
+        report=None,
+        findings_text=None,
+        created_at=now,
+        last_active=now,
+    )
+    db.add(session)
+    await db.flush()
 
-    session: dict = {
-        "id": session_id,
-        "user_id": current_user["user_id"],
-        "name": None,
-        "question": preview["question"],
-        "angles": preview["angles"],
-        "created_at": now,
-        "last_active": now,
-    }
-    _sessions[session_id] = session
-
-    # Preview consumed — remove it so it can't be reused
+    # Preview consumed — remove so it can't be reused.
     del _previews[body.preview_id]
 
     return _to_session_out(session)
@@ -151,31 +147,59 @@ async def create_session(
 @router.get("", response_model=list[SessionOut])
 async def list_sessions(
     current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> list[SessionOut]:
-    """
-    Return all sessions for the current user, newest first.
-    Used by the session sidebar to populate the session list.
-    """
-    user_sessions = [
-        s for s in _sessions.values()
-        if s["user_id"] == current_user["user_id"]
-    ]
-    user_sessions.sort(key=lambda s: s["last_active"], reverse=True)
-    return [_to_session_out(s) for s in user_sessions]
+    """Return all sessions for the current user, newest first (for the sidebar)."""
+    result = await db.execute(
+        select(ResearchSession)
+        .where(ResearchSession.user_id == current_user["user_id"])
+        .order_by(ResearchSession.last_active.desc())
+    )
+    return [_to_session_out(s) for s in result.scalars().all()]
 
 
 # ---------------------------------------------------------------------------
 # GET /sessions/{session_id}
 # ---------------------------------------------------------------------------
 
-@router.get("/{session_id}", response_model=SessionOut)
+@router.get("/{session_id}", response_model=SessionDetailOut)
 async def get_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
-) -> SessionOut:
-    """Return one session's metadata."""
-    session = _get_owned_session(session_id, current_user["user_id"])
-    return _to_session_out(session)
+    db: AsyncSession = Depends(get_db),
+) -> SessionDetailOut:
+    """
+    Full session detail: metadata + stored report + conversation messages.
+    The frontend uses this to rehydrate a session after a page refresh.
+    """
+    session = await _get_owned_session(db, session_id, current_user["user_id"])
+
+    msg_result = await db.execute(
+        select(Message)
+        .where(Message.session_id == session_id)
+        .order_by(Message.created_at)
+    )
+    messages = [
+        MessageOut(
+            id=m.id,
+            role=m.role,
+            type=m.type,
+            content=m.content,
+            report=m.report,
+            created_at=m.created_at,
+        )
+        for m in msg_result.scalars().all()
+    ]
+
+    return SessionDetailOut(
+        id=session.id,
+        name=session.name,
+        question=session.question,
+        created_at=session.created_at,
+        last_active=session.last_active,
+        report=session.report,
+        messages=messages,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -186,31 +210,28 @@ async def get_session(
 async def name_session(
     session_id: str,
     current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Generate a short 3-5 word name for the session using fast_llm.
-
-    Called by the frontend immediately after report.ready is received.
-    Uses Llama 3.1 8B (fast_llm) — the naming task is simple enough
-    that the small model handles it reliably and quickly.
-
-    Returns: { "name": "Generated session name" }
+    Called by the frontend right after the report arrives. Returns { "name": ... }.
     """
-    session = _get_owned_session(session_id, current_user["user_id"])
+    session = await _get_owned_session(db, session_id, current_user["user_id"])
 
     response = await fast_llm.ainvoke([
         HumanMessage(
             content=(
                 "Extract the main research topic from this question in 3 to 5 words. "
                 "Return ONLY the topic — no punctuation, no explanation:\n\n"
-                f"{session['question']}"
+                f"{session.question}"
             )
         )
     ])
 
     name = response.content.strip().strip(".,!?")[:80]
-    session["name"] = name
-    session["last_active"] = datetime.now(timezone.utc)
+    session.name = name
+    session.last_active = datetime.now(timezone.utc)
+    await db.flush()
 
     return {"name": name}
 
@@ -224,25 +245,59 @@ async def store_report(
     session_id: str,
     body: StoreReportRequest,
     current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
-    Store the finished report in the session record for follow-up routing context.
+    Persist the finished report on the session row.
 
-    Called by the frontend immediately after report.ready is received (alongside
-    PATCH /sessions/{id}/name). The stored report lets the follow-up endpoint
-    route questions deterministically — keyword matching runs against the
-    findings text without needing the frontend to re-send it every time.
+    Stores both the full report JSON (for rehydration on return) and a
+    pre-joined findings_text string (for deterministic follow-up routing).
     """
-    session = _get_owned_session(session_id, current_user["user_id"])
+    session = await _get_owned_session(db, session_id, current_user["user_id"])
 
     report_data = body.report
-    # Pre-join all finding claims + support into one string for fast keyword matching
-    session["findings_text"] = " ".join(
+    session.report = report_data
+    session.findings_text = " ".join(
         f"{f.get('claim', '')} {f.get('support', '')}"
         for f in report_data.get("key_findings", [])
     )
-    session["report_data"] = report_data
-    session["last_active"] = datetime.now(timezone.utc)
+    session.last_active = datetime.now(timezone.utc)
+    await db.flush()
+
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# POST /sessions/{session_id}/messages
+# ---------------------------------------------------------------------------
+
+@router.post("/{session_id}/messages", status_code=status.HTTP_201_CREATED)
+async def append_message(
+    session_id: str,
+    body: AppendMessageRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Append a conversation message to the session.
+
+    Frontend-driven: the frontend persists each message as it is added to the
+    thread (user questions, reasoning replies, pipeline reports). Because the
+    frontend supplies the message id, the persisted ids match the live ids,
+    so rehydrating after a refresh produces the same thread.
+    """
+    session = await _get_owned_session(db, session_id, current_user["user_id"])
+
+    db.add(Message(
+        id=body.id,
+        session_id=session.id,
+        role=body.role,
+        type=body.type,
+        content=body.content,
+        report=body.report,
+    ))
+    session.last_active = datetime.now(timezone.utc)
+    await db.flush()
 
     return {"ok": True}
 
@@ -262,33 +317,28 @@ async def followup(
     session_id: str,
     body: FollowUpRequest,
     current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
-    Handle a follow-up question for a completed research session.
+    Route + answer a follow-up question for a completed session.
 
-    Routing (deterministic — no LLM):
-      "reasoning" → answer from existing findings (fast, 1 credit)
-      "pipeline"  → new full research run (thorough, 5 credits)
+    Routing is deterministic (no LLM):
+      "reasoning" → answer from existing findings (1 credit, deducted here)
+      "pipeline"  → new full run (5 credits, deducted later via /credits/deduct
+                    after the user confirms CreditWarning)
 
-    Reasoning path: calls smart_llm with the original findings as context.
-    Pipeline path:  generates a new run_id and returns it — the frontend
-                    opens a WebSocket to /ws/{run_id}?question=... to start
-                    the pipeline (same mechanism as the original run).
-
-    Returns:
-      { "type": "reasoning", "answer": "..." }
-      { "type": "pipeline",  "run_id": "..." }
+    Returns { "type": "reasoning", "answer": ... } or { "type": "pipeline", "run_id": ... }.
+    Message persistence is handled separately by POST /sessions/{id}/messages.
     """
-    session = _get_owned_session(session_id, current_user["user_id"])
-    findings_text: str = session.get("findings_text", "")
-    report_data: dict = session.get("report_data", {})
+    session = await _get_owned_session(db, session_id, current_user["user_id"])
+    findings_text = session.findings_text or ""
+    report_data = session.report or {}
 
     decision = route_followup(body.question, findings_text)
 
     if decision == "reasoning":
-        # Deduct 1 credit for reasoning follow-up (before calling the LLM so that
-        # a failed LLM call still doesn't double-charge on retry).
-        spend_credits(current_user["user_id"], 1)
+        # Deduct 1 credit before the LLM call (avoids double-charge on retry).
+        await spend_credits(db, current_user["user_id"], 1)
 
         findings_summary = "\n".join(
             f"- [{f.get('confidence', 'medium')}] {f.get('claim', '')}: "
@@ -299,7 +349,7 @@ async def followup(
             SystemMessage(content=_REASONING_SYSTEM),
             HumanMessage(
                 content=(
-                    f"Original research question: {session['question']}\n\n"
+                    f"Original research question: {session.question}\n\n"
                     f"Research summary: {report_data.get('tl_dr', '')}\n\n"
                     f"Key findings:\n{findings_summary}\n\n"
                     f"Follow-up question: {body.question}"
@@ -309,10 +359,7 @@ async def followup(
         response = await smart_llm.ainvoke(messages)
         return {"type": "reasoning", "answer": response.content.strip()}
 
-    # Pipeline follow-up — return a run_id but do NOT deduct credits here.
-    # The frontend shows CreditWarning, and the user confirms via POST /credits/deduct
-    # before opening the WebSocket. This ensures credits are only charged
-    # after explicit user confirmation.
+    # Pipeline follow-up — return a run_id; credits deducted on user confirmation.
     return {"type": "pipeline", "run_id": str(uuid.uuid4())}
 
 
@@ -320,20 +367,22 @@ async def followup(
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _get_owned_session(session_id: str, user_id: str) -> dict:
-    session = _sessions.get(session_id)
+async def _get_owned_session(
+    db: AsyncSession, session_id: str, user_id: str
+) -> ResearchSession:
+    session = await db.get(ResearchSession, session_id)
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
-    if session["user_id"] != user_id:
+    if session.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your session.")
     return session
 
 
-def _to_session_out(session: dict) -> SessionOut:
+def _to_session_out(session: ResearchSession) -> SessionOut:
     return SessionOut(
-        id=session["id"],
-        name=session.get("name"),
-        question=session["question"],
-        created_at=session["created_at"],
-        last_active=session["last_active"],
+        id=session.id,
+        name=session.name,
+        question=session.question,
+        created_at=session.created_at,
+        last_active=session.last_active,
     )
