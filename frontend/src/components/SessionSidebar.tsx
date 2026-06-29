@@ -21,7 +21,15 @@ function formatDate(iso: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
-function SessionEntry({ session, active }: { session: Session; active: boolean }) {
+function SessionEntry({
+  session,
+  active,
+  isRunning,
+}: {
+  session: Session
+  active: boolean
+  isRunning: boolean
+}) {
   return (
     <Link
       href={`/run/${session.id}?q=${encodeURIComponent(session.question)}`}
@@ -31,10 +39,16 @@ function SessionEntry({ session, active }: { session: Session; active: boolean }
           : "text-white/50 hover:bg-white/5 hover:text-white/80"
       }`}
     >
-      <p className="text-xs font-medium leading-snug line-clamp-2">
-        {session.name ?? session.question}
-      </p>
-      <p className="text-[10px] text-white/25 mt-1">{formatDate(session.last_active)}</p>
+      <div className="flex items-start gap-2">
+        {/* Pulsing amber dot — visible only while a WebSocket is active for this session */}
+        {isRunning && (
+          <span className="mt-1 shrink-0 block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+        )}
+        <p className="text-xs font-medium leading-snug line-clamp-2">
+          {session.name ?? session.question}
+        </p>
+      </div>
+      <p className="text-[10px] text-white/25 mt-1 pl-3.5">{formatDate(session.last_active)}</p>
     </Link>
   )
 }
@@ -42,7 +56,7 @@ function SessionEntry({ session, active }: { session: Session; active: boolean }
 export function SessionSidebar() {
   const router = useRouter()
   const pathname = usePathname()
-  const { sessions, credits } = useSessionStore()
+  const { sessions, credits, activeConnections } = useSessionStore()
   const { clearAuth } = useAuthStore()
 
   async function handleLogout() {
@@ -82,7 +96,12 @@ export function SessionSidebar() {
           </p>
         ) : (
           sessions.map((s) => (
-            <SessionEntry key={s.id} session={s} active={s.id === activeId} />
+            <SessionEntry
+              key={s.id}
+              session={s}
+              active={s.id === activeId}
+              isRunning={Boolean(activeConnections[s.id])}
+            />
           ))
         )}
       </nav>

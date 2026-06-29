@@ -3,17 +3,26 @@
 // Research home — 3-step intake flow:
 //   Step 1 (input)   → user types question → clicks "Plan Research"
 //   Step 2 (preview) → Planner runs, 3 angle cards shown → user confirms
-//   Step 3 (starting) → session created, redirect to /run/[id]
+//   Step 3 (starting) → session created, WebSocket opened, then navigate
 //
-// The sidebar (from layout) shows past sessions. This page only owns the
-// intake flow and the empty/non-empty state of the question area.
+// M5 change: the WebSocket is opened HERE (before router.push) so it lives in
+// the Zustand store from the start. When the run page mounts, it finds the
+// connection already open and subscribes to the existing run state — it does
+// NOT create a new connection and does NOT close the connection on unmount.
+//
+// Concurrent run check:
+//   0 active → proceed immediately
+//   1 active → show ConcurrentRunWarning (costs 5 more ◉)
+//   2 active → show ConcurrentRunWarning in blocked state (hard cap)
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { useSessionStore } from "@/lib/store"
+import { useSessionStore, EMPTY_RUN_STATE } from "@/lib/store"
 import { api, ApiError } from "@/lib/api"
+import { createRunSocket } from "@/lib/websocket"
 import { AnglePreview } from "@/components/AnglePreview"
+import { ConcurrentRunWarning } from "@/components/ConcurrentRunWarning"
 import type { AnglePlan, Session } from "@/types/events"
 
 const EXAMPLES = [
@@ -27,15 +36,22 @@ type Step = "input" | "planning" | "preview" | "starting"
 
 export default function HomePage() {
   const router = useRouter()
-  const { sessions, addSession } = useSessionStore()
+  const {
+    sessions, addSession, initRunState,
+    handleSessionEvent, addConnection, removeConnection,
+    activeConnections,
+  } = useSessionStore()
 
   const [step, setStep] = useState<Step>("input")
   const [question, setQuestion] = useState("")
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [angles, setAngles] = useState<AnglePlan[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [showConcurrentWarning, setShowConcurrentWarning] = useState(false)
 
-  // Step 1 → 2: run planner, show angle preview
+  const activeCount = Object.keys(activeConnections).length
+
+  // Step 1 → 2: run planner only, show angle preview
   async function handlePlan() {
     if (!question.trim()) return
     setError(null)
@@ -55,14 +71,49 @@ export default function HomePage() {
     }
   }
 
-  // Step 2 → 3: create session, redirect
-  async function handleConfirm() {
+  // Step 2 → 3: confirm plan, create session, open WebSocket, navigate
+  // ignoreConcurrent=true means the user already acknowledged the warning
+  async function handleConfirm(ignoreConcurrent = false) {
     if (!previewId) return
+
+    // Concurrent run gate
+    if (activeCount >= 2) {
+      setShowConcurrentWarning(true)
+      return
+    }
+    if (activeCount >= 1 && !ignoreConcurrent) {
+      setShowConcurrentWarning(true)
+      return
+    }
+
+    setShowConcurrentWarning(false)
     setStep("starting")
 
     try {
       const session = await api.post<Session>("/sessions", { preview_id: previewId })
       addSession(session)
+
+      // Initialise a clean run state for this session BEFORE the WebSocket opens
+      initRunState(session.id)
+
+      // Open the WebSocket and store it in the Zustand module-level store.
+      // This keeps the TCP connection alive even after the run page unmounts.
+      // Events flow into runStates[session.id] regardless of which page is rendered.
+      const ws = createRunSocket(
+        session.id,
+        session.question,
+        (event) => {
+          handleSessionEvent(session.id, event)
+          // Remove the connection handle once the run finishes or errors —
+          // the underlying socket will close naturally on its own.
+          if (event.type === "report.ready" || event.type === "run.error") {
+            removeConnection(session.id)
+          }
+        },
+        () => removeConnection(session.id), // onclose: server-side close / timeout
+      )
+      addConnection(session.id, ws)
+
       router.push(`/run/${session.id}?q=${encodeURIComponent(session.question)}`)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to start session.")
@@ -132,11 +183,8 @@ export default function HomePage() {
                 </button>
               </form>
 
-              {error && (
-                <p className="text-sm text-red-400">{error}</p>
-              )}
+              {error && <p className="text-sm text-red-400">{error}</p>}
 
-              {/* Example chips */}
               <div className="flex flex-wrap gap-2 justify-center">
                 {EXAMPLES.map((q) => (
                   <button
@@ -150,12 +198,9 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* Recent sessions (non-empty state) */}
               {sessions.length > 0 && (
                 <div className="text-left border-t border-white/5 pt-6">
-                  <p className="text-xs text-white/30 uppercase tracking-widest mb-3">
-                    Recent sessions
-                  </p>
+                  <p className="text-xs text-white/30 uppercase tracking-widest mb-3">Recent sessions</p>
                   <div className="space-y-1.5">
                     {sessions.slice(0, 5).map((s) => (
                       <a
@@ -185,7 +230,7 @@ export default function HomePage() {
                 question={question}
                 angles={angles}
                 onBack={handleBack}
-                onConfirm={handleConfirm}
+                onConfirm={() => handleConfirm()}
                 loading={isStarting}
               />
             </motion.div>
@@ -193,6 +238,15 @@ export default function HomePage() {
 
         </AnimatePresence>
       </div>
+
+      {/* Concurrent run warning modal */}
+      {showConcurrentWarning && (
+        <ConcurrentRunWarning
+          activeCount={activeCount}
+          onConfirm={() => handleConfirm(true)}
+          onCancel={() => setShowConcurrentWarning(false)}
+        />
+      )}
     </main>
   )
 }

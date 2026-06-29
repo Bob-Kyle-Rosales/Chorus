@@ -2,33 +2,24 @@
 
 // Run page — Layout A conversation thread.
 //
-// Structure (top → bottom):
-//   ConversationThread  — scrollable, grows as follow-ups are added
-//   FollowUpInput       — fixed at bottom, always visible
-//   CreditWarning       — modal overlay shown before pipeline follow-ups
+// M5 architecture: this page is a PURE VIEW of the session state in Zustand.
+// It does NOT own the WebSocket connection. The connection was opened in
+// home/page.tsx (before navigation) and lives in useSessionStore.activeConnections.
+// Navigating away does NOT close the connection — research continues in the
+// background. Navigating back shows the current state from the store.
 //
-// Original pipeline run:
-//   WebSocket opens on mount, events dispatched to useRunStore.
-//   When status === "complete", the report is stored in the session (for
-//   follow-up routing context) and the session is auto-named.
-//
-// Follow-up flow:
-//   1. User submits question via FollowUpInput
-//   2. POST /sessions/{id}/followup → routing decision
-//   3a. "reasoning" → addReasoningMessage, done
-//   3b. "pipeline"  → show CreditWarning → on confirm: open new WebSocket,
-//       events dispatched to handleFollowUpEvent(messageId, event)
+// The page's useEffect only sets/clears currentSessionId for the sidebar highlight.
+// Nothing else runs on mount/unmount that could disrupt the live pipeline.
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import { ConversationThread } from "@/components/ConversationThread"
 import { FollowUpInput } from "@/components/FollowUpInput"
 import { CreditWarning } from "@/components/CreditWarning"
-import { useRunStore, useSessionStore } from "@/lib/store"
+import { useSessionStore, EMPTY_RUN_STATE } from "@/lib/store"
 import { createRunSocket } from "@/lib/websocket"
 import { api } from "@/lib/api"
 
-// Pending pipeline follow-up waiting for the user to confirm in CreditWarning
 interface PendingPipeline {
   msgId: string
   runId: string
@@ -41,47 +32,45 @@ export default function RunPage() {
   const question = searchParams.get("q") ?? ""
 
   const {
-    status, agents, report, conversation,
-    followUpStatus, handleEvent, reset,
+    runStates, activeConnections, credits,
+    setCurrentSessionId, updateSessionName,
+    handleSessionEvent, handleFollowUpEvent,
     addUserMessage, addReasoningMessage,
-    addPipelineFollowUp, handleFollowUpEvent,
-    setFollowUpStatus,
-  } = useRunStore()
+    addPipelineFollowUp, setFollowUpStatus,
+    addConnection, removeConnection,
+    initRunState,
+  } = useSessionStore()
 
-  const { updateSessionName, setCurrentSessionId, credits } = useSessionStore()
+  // Read this session's run state from the store — never local component state
+  const runState = runStates[id] ?? EMPTY_RUN_STATE
+  const { status, agents, report, conversation, followUpStatus } = runState
 
-  const wsRef = useRef<WebSocket | null>(null)
   const [pendingPipeline, setPendingPipeline] = useState<PendingPipeline | null>(null)
 
-  // ── Open WebSocket for the original pipeline run ────────────────────
+  // ── Sidebar highlight only — no WebSocket side-effects ─────────────
   useEffect(() => {
-    reset()
     setCurrentSessionId(id)
-    wsRef.current = createRunSocket(id, question, handleEvent)
     return () => {
-      wsRef.current?.close()
       setCurrentSessionId(null)
+      // INTENTIONALLY do not close the WebSocket here.
+      // Background execution: the connection in activeConnections survives unmount.
     }
-  }, [id, question]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── When original run completes: store report + auto-name session ───
+  // ── Store report + auto-name session when original run completes ────
   useEffect(() => {
     if (status !== "complete" || !report) return
-
-    // Store report for follow-up routing context (non-blocking)
     api.patch(`/sessions/${id}/report`, { report }).catch(() => {})
-
-    // Generate a short session name
     api.patch<{ name: string }>(`/sessions/${id}/name`)
       .then(({ name }) => updateSessionName(id, name))
       .catch(() => {})
   }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Handle follow-up submission ─────────────────────────────────────
+  // ── Follow-up submission ────────────────────────────────────────────
   async function handleFollowUp(q: string) {
     const msgId = Date.now().toString()
-    addUserMessage(msgId, q)
-    setFollowUpStatus("submitting")
+    addUserMessage(id, msgId, q)
+    setFollowUpStatus(id, "submitting")
 
     try {
       const result = await api.post<
@@ -89,34 +78,54 @@ export default function RunPage() {
       >(`/sessions/${id}/followup`, { question: q })
 
       if (result.type === "reasoning") {
-        addReasoningMessage(`${msgId}-r`, q, result.answer)
-        setFollowUpStatus("idle")
+        addReasoningMessage(id, `${msgId}-r`, q, result.answer)
+        setFollowUpStatus(id, "idle")
       } else {
-        // Pipeline follow-up — show credit warning before starting
         setPendingPipeline({ msgId: `${msgId}-p`, runId: result.run_id, question: q })
-        setFollowUpStatus("idle")
+        setFollowUpStatus(id, "idle")
       }
     } catch {
-      setFollowUpStatus("idle")
+      setFollowUpStatus(id, "idle")
     }
   }
 
-  // ── Confirm pipeline follow-up (user approved in CreditWarning) ─────
+  // ── Confirm follow-up pipeline run (after credit warning) ───────────
   function confirmPipeline() {
     if (!pendingPipeline) return
     const { msgId, runId, question: q } = pendingPipeline
     setPendingPipeline(null)
 
-    addPipelineFollowUp(msgId, q, runId)
-    setFollowUpStatus("active")
+    addPipelineFollowUp(id, msgId, q, runId)
+    setFollowUpStatus(id, "active")
 
-    const ws = createRunSocket(runId, q, (event) => handleFollowUpEvent(msgId, event))
-    ws.onclose = () => setFollowUpStatus("idle")
+    const ws = createRunSocket(
+      runId,
+      q,
+      (event) => handleFollowUpEvent(id, msgId, event),
+    )
+    ws.onclose = () => setFollowUpStatus(id, "idle")
+  }
+
+  // ── Empty state: direct URL access with no stored run state ─────────
+  const hasNoState = status === "idle" && !activeConnections[id]
+  if (hasNoState && Object.keys(agents).length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-white/30 text-sm mb-4">
+          No active research for this session.
+        </p>
+        <a
+          href="/home"
+          className="text-xs text-white/40 hover:text-white/70 border border-white/10 rounded-xl px-4 py-2 transition-colors"
+        >
+          Start new research
+        </a>
+      </div>
+    )
   }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Scrollable conversation */}
       <ConversationThread
         question={question}
         runStatus={status}
@@ -125,7 +134,6 @@ export default function RunPage() {
         conversation={conversation}
       />
 
-      {/* Credit warning modal */}
       {pendingPipeline && (
         <CreditWarning
           creditsRemaining={credits}
@@ -134,7 +142,6 @@ export default function RunPage() {
         />
       )}
 
-      {/* Fixed follow-up input — only shown after the original run starts */}
       {status !== "idle" && (
         <FollowUpInput
           onSubmit={handleFollowUp}
