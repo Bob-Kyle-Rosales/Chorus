@@ -1,4 +1,3 @@
-# test_fetch_guard.py
 # Tests for the SSRF (Server-Side Request Forgery) guard.
 #
 # TDD approach — this file is written BEFORE fetch_guard.py exists.

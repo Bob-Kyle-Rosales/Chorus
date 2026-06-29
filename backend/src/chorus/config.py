@@ -59,6 +59,17 @@ class Settings(BaseSettings):
     run_timeout_seconds: int = 120
 
     # ------------------------------------------------------------------
+    # Authentication (JWT)
+    # jwt_secret signs and verifies access + refresh tokens.
+    # Change this in production — any string works, longer is more secure.
+    # token_expire_minutes: short-lived access token (15 min is standard).
+    # refresh_expire_days: long-lived refresh token stored in httpOnly cookie.
+    # ------------------------------------------------------------------
+    jwt_secret: str = "dev-secret-change-in-production"
+    token_expire_minutes: int = 15
+    refresh_expire_days: int = 7
+
+    # ------------------------------------------------------------------
     # Fetch safety (see SECURITY.md T3)
     # Maximum bytes to read from a fetched web page.
     # Prevents a single huge page from consuming excessive memory.
