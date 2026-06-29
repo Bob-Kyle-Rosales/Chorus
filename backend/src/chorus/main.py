@@ -18,6 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware  # handles browser cross-orig
 
 from chorus.config import settings      # centralized config (API keys, limits, allowed origins)
 from chorus.api.routes import router
+from chorus.api.auth import router as auth_router
+from chorus.api.sessions import router as sessions_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -74,6 +76,8 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(auth_router)
+app.include_router(sessions_router)
 
 @app.get("/health")
 async def health() -> dict[str, str]:

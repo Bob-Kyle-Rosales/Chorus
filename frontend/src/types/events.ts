@@ -44,6 +44,62 @@ export interface AgentState {
   status: "running" | "finished"
 }
 
+// ---------------------------------------------------------------------------
+// Sessions
+// ---------------------------------------------------------------------------
+
+export interface Session {
+  id: string
+  name: string | null
+  question: string
+  created_at: string   // ISO 8601 string from backend
+  last_active: string
+}
+
+export interface AnglePreviewResult {
+  preview_id: string
+  angles: AnglePlan[]
+}
+
+// ---------------------------------------------------------------------------
+// Conversation thread — follow-up message types
+// ---------------------------------------------------------------------------
+
+// A message the user typed as a follow-up question
+export interface UserMessage {
+  type: "user"
+  id: string
+  text: string
+  timestamp: string
+}
+
+// Chorus answered from existing findings — fast, no new pipeline
+export interface ReasoningMessage {
+  type: "reasoning"
+  id: string
+  question: string
+  answer: string
+  timestamp: string
+}
+
+// Chorus ran a new full pipeline for the follow-up
+export interface PipelineMessage {
+  type: "pipeline"
+  id: string
+  question: string
+  runId: string
+  agents: Record<string, AgentState>
+  report: Report | null
+  status: "running" | "complete" | "error"
+  timestamp: string
+}
+
+export type ConversationMessage = UserMessage | ReasoningMessage | PipelineMessage
+
+// ---------------------------------------------------------------------------
+// WebSocket events
+// ---------------------------------------------------------------------------
+
 export type ServerEvent =
   | { type: "run.started"; run_id: string; question: string }
   | { type: "plan.ready"; angles: AnglePlan[] }
