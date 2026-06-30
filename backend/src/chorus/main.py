@@ -72,12 +72,17 @@ app = FastAPI(title="Chorus API", version="0.1.0", lifespan=lifespan)
 # allow_origins: only the listed URLs can make requests (from settings.allowed_origins)
 # allow_methods=["*"]: allow GET, POST, OPTIONS, etc.
 # allow_headers=["*"]: allow any request headers
+# allow_credentials=True: lets the browser send/receive cookies (the refresh_token
+#   httpOnly cookie) on cross-origin requests. Required because api.ts fetches with
+#   credentials: "include". Note: when this is True, allow_origins CANNOT be "*" —
+#   it must be an explicit list, which settings.allowed_origins already is.
 #
 # IMPORTANT: CORSMiddleware does NOT protect WebSocket connections.
 # WebSocket origin validation is handled separately in routes.py.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
