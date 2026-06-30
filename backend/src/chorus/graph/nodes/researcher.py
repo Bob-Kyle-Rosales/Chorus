@@ -205,15 +205,22 @@ async def researcher_node(state: GraphState, angle_index: int = 0) -> dict:
     # ------------------------------------------------------------------
     # Sub-step C: Analyze with Groq — two LLM calls
     # ------------------------------------------------------------------
-
-    # --- First call: stream reasoning to the frontend ---
-    # This is what produces the live typing effect in the researcher's card.
-    # astream() yields tokens one at a time as Groq generates them.
-    # The tokens flow to the frontend via astream_events in routes.py —
-    # this node does NOT call send() directly (Observer pattern handles it).
-    reasoning_messages = [
-        SystemMessage(content=REASONING_PROMPT),
-        HumanMessage(content=f"""
+    # Wrapped in try/except so a Groq API failure (rate limit exhausted after
+    # retries, network error, etc.) degrades THIS ONE researcher to a stub
+    # finding instead of crashing the entire graph run. Without this, one
+    # researcher's transient failure throws away the other researchers'
+    # completed work and kills the whole session — easy to trigger when
+    # parallel researchers across concurrent sessions burst past Groq's TPM
+    # rate limit (all sessions share one API key's token budget).
+    try:
+        # --- First call: stream reasoning to the frontend ---
+        # This is what produces the live typing effect in the researcher's card.
+        # astream() yields tokens one at a time as Groq generates them.
+        # The tokens flow to the frontend via astream_events in routes.py —
+        # this node does NOT call send() directly (Observer pattern handles it).
+        reasoning_messages = [
+            SystemMessage(content=REASONING_PROMPT),
+            HumanMessage(content=f"""
 Angle to investigate: {angle.brief}
 Original question: {state['question']}
 
@@ -222,56 +229,73 @@ Sources:
 
 Write your analytical findings based on these sources.
 """),
-    ]
-
-    # Accumulate the streamed tokens into a full reasoning text.
-    # The tokens themselves are forwarded to the frontend by astream_events in routes.py.
-    accumulated_reasoning = ""
-    async for chunk in smart_llm.astream(reasoning_messages):
-        accumulated_reasoning += chunk.content
-
-    # --- Second call: extract structured findings from the reasoning ---
-    # ainvoke() here (not astream) because we need complete JSON, not a stream.
-    # The reasoning text from the first call is the input — this call distills
-    # the free-form analysis into typed Finding objects the Critic can work with.
-    extraction_messages = [
-        SystemMessage(content=EXTRACTION_PROMPT),
-        HumanMessage(content=f"Research analysis to extract findings from:\n\n{accumulated_reasoning}"),
-    ]
-
-    extraction_response = await smart_llm.ainvoke(extraction_messages)
-
-    # Strip markdown code fences if the LLM wrapped the JSON despite instructions.
-    # e.g. ```json\n{...}\n``` → {...}
-    raw_content = extraction_response.content.strip()
-    if raw_content.startswith("```"):
-        # Remove opening fence (```json or ```)
-        raw_content = raw_content.split("\n", 1)[-1]
-        # Remove closing fence
-        raw_content = raw_content.rsplit("```", 1)[0].strip()
-
-    # Parse the JSON and build Finding objects with citations attached
-    try:
-        extracted = json.loads(raw_content)
-        findings = [
-            Finding(
-                claim=f["claim"],
-                support=f["support"],
-                citations=citations,    # attach all sources to every finding
-                confidence=f.get("confidence", "medium"),
-            )
-            for f in extracted.get("findings", [])
         ]
-        open_questions = extracted.get("open_questions", [])
-    except (json.JSONDecodeError, KeyError):
-        # If structured extraction fails, create one finding from the raw reasoning
+
+        # Accumulate the streamed tokens into a full reasoning text.
+        # The tokens themselves are forwarded to the frontend by astream_events in routes.py.
+        accumulated_reasoning = ""
+        async for chunk in smart_llm.astream(reasoning_messages):
+            accumulated_reasoning += chunk.content
+
+        # --- Second call: extract structured findings from the reasoning ---
+        # ainvoke() here (not astream) because we need complete JSON, not a stream.
+        # The reasoning text from the first call is the input — this call distills
+        # the free-form analysis into typed Finding objects the Critic can work with.
+        extraction_messages = [
+            SystemMessage(content=EXTRACTION_PROMPT),
+            HumanMessage(content=f"Research analysis to extract findings from:\n\n{accumulated_reasoning}"),
+        ]
+
+        extraction_response = await smart_llm.ainvoke(extraction_messages)
+
+        # Strip markdown code fences if the LLM wrapped the JSON despite instructions.
+        # e.g. ```json\n{...}\n``` → {...}
+        raw_content = extraction_response.content.strip()
+        if raw_content.startswith("```"):
+            # Remove opening fence (```json or ```)
+            raw_content = raw_content.split("\n", 1)[-1]
+            # Remove closing fence
+            raw_content = raw_content.rsplit("```", 1)[0].strip()
+
+        # Parse the JSON and build Finding objects with citations attached
+        try:
+            extracted = json.loads(raw_content)
+            findings = [
+                Finding(
+                    claim=f["claim"],
+                    support=f["support"],
+                    citations=citations,    # attach all sources to every finding
+                    confidence=f.get("confidence", "medium"),
+                )
+                for f in extracted.get("findings", [])
+            ]
+            open_questions = extracted.get("open_questions", [])
+        except (json.JSONDecodeError, KeyError):
+            # If structured extraction fails, create one finding from the raw reasoning
+            findings = [Finding(
+                claim=f"Research findings for {angle.angle_id}",
+                support=accumulated_reasoning[:1000],
+                citations=citations,
+                confidence="low",
+            )]
+            open_questions = ["Structured extraction failed — findings may be incomplete."]
+
+    except Exception:
+        # Groq call failed outright (rate limit exhausted, network error, etc.)
+        # even after the client's built-in retries. Degrade this researcher to
+        # a stub finding so the Critic and Synthesizer can still produce a
+        # report from the other researchers' real findings.
         findings = [Finding(
-            claim=f"Research findings for {angle.angle_id}",
-            support=accumulated_reasoning[:1000],
+            claim=f"Research on '{angle.angle_id}' could not be completed",
+            support=(
+                "This angle's analysis failed due to a temporary issue with the "
+                "research service (e.g. rate limiting). The other angles below "
+                "were not affected. Consider re-running this research."
+            ),
             citations=citations,
             confidence="low",
         )]
-        open_questions = ["Structured extraction failed — findings may be incomplete."]
+        open_questions = [f"Analysis for '{angle.angle_id}' failed — consider re-running this research."]
 
     # Return wrapped in a list — the operator.add reducer in GraphState
     # appends this to the other researchers' outputs without overwriting.
