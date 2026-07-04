@@ -144,10 +144,13 @@ export default function HomePage() {
   const showPreview = step === "preview" || step === "starting"
 
   return (
-    <main className="flex min-h-full flex-1 flex-col items-center justify-center p-8">
+    <main
+      className="flex min-h-full flex-1 flex-col items-center justify-center p-8"
+      style={{ background: "var(--chorus-bg)" }}
+    >
       <div className="w-full max-w-2xl space-y-8">
         <AnimatePresence mode="wait">
-          {/* ── Step 1 & planning: question input ──────────────────────── */}
+          {/* ── Input / planning ── */}
           {!showPreview && (
             <motion.div
               key="input"
@@ -155,13 +158,16 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="space-y-6 text-center"
+              className="space-y-8 text-center"
             >
               <div>
-                <h1 className="mb-2 text-3xl font-bold tracking-tight">
+                <h1
+                  className="mb-2 text-4xl font-light"
+                  style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
+                >
                   {sessions.length === 0 ? "What are you researching?" : "New research"}
                 </h1>
-                <p className="text-sm text-white/40">
+                <p className="text-sm" style={{ color: "var(--chorus-muted)" }}>
                   Chorus will plan your research before you commit to running it.
                 </p>
               </div>
@@ -171,7 +177,7 @@ export default function HomePage() {
                   e.preventDefault()
                   handlePlan()
                 }}
-                className="flex gap-3"
+                className="flex gap-2"
               >
                 <input
                   type="text"
@@ -179,18 +185,29 @@ export default function HomePage() {
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
                   disabled={isPlanning}
-                  placeholder="Ask anything..."
-                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-white placeholder:text-white/30 focus:ring-2 focus:ring-white/20 focus:outline-none disabled:opacity-50"
+                  placeholder="Ask anything…"
+                  className="flex-1 rounded px-5 py-3 text-sm outline-none transition-colors disabled:opacity-50"
+                  style={{
+                    background: "var(--chorus-surface)",
+                    border: "1px solid var(--chorus-border)",
+                    color: "var(--chorus-text)",
+                  }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "var(--chorus-gold)")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--chorus-border)")}
                 />
                 <button
                   type="submit"
                   disabled={isPlanning || !question.trim()}
-                  className="rounded-xl bg-white px-5 py-3 text-sm font-semibold whitespace-nowrap text-zinc-950 transition-colors hover:bg-white/90 disabled:opacity-40"
+                  className="rounded px-5 py-3 text-sm font-medium whitespace-nowrap transition-opacity disabled:opacity-40"
+                  style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
                 >
                   {isPlanning ? (
                     <span className="flex items-center gap-2">
-                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-400 border-t-zinc-900" />
-                      Planning...
+                      <span
+                        className="h-3.5 w-3.5 animate-spin rounded-full border-2"
+                        style={{ borderColor: "rgba(13,20,32,0.3)", borderTopColor: "var(--chorus-bg)" }}
+                      />
+                      Planning…
                     </span>
                   ) : (
                     "Plan research"
@@ -198,15 +215,22 @@ export default function HomePage() {
                 </button>
               </form>
 
-              {error && <p className="text-sm text-red-400">{error}</p>}
+              {error && (
+                <p className="text-sm text-red-400">{error}</p>
+              )}
 
+              {/* Example prompts */}
               <div className="flex flex-wrap justify-center gap-2">
                 {EXAMPLES.map((q) => (
                   <button
                     key={q}
                     onClick={() => setQuestion(q)}
                     disabled={isPlanning}
-                    className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/30 transition-colors hover:text-white/60 disabled:opacity-30"
+                    className="rounded-full border px-3 py-1 text-xs transition-colors hover:opacity-80 disabled:opacity-30"
+                    style={{
+                      borderColor: "var(--chorus-border)",
+                      color: "var(--chorus-muted)",
+                    }}
                   >
                     {q}
                   </button>
@@ -214,16 +238,23 @@ export default function HomePage() {
               </div>
 
               {sessions.length > 0 && (
-                <div className="border-t border-white/5 pt-6 text-left">
-                  <p className="mb-3 text-xs tracking-widest text-white/30 uppercase">
+                <div
+                  className="pt-6 text-left"
+                  style={{ borderTop: "1px solid var(--chorus-border)" }}
+                >
+                  <p
+                    className="mb-3 font-mono text-xs tracking-widest uppercase"
+                    style={{ color: "var(--chorus-border)" }}
+                  >
                     Recent sessions
                   </p>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {sessions.slice(0, 5).map((s) => (
                       <a
                         key={s.id}
                         href={`/run/${s.id}?q=${encodeURIComponent(s.question)}`}
-                        className="block truncate rounded-lg px-3 py-1.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white/80"
+                        className="block truncate rounded px-3 py-1.5 text-sm transition-colors hover:opacity-80"
+                        style={{ color: "var(--chorus-muted)" }}
                       >
                         {s.name ?? s.question}
                       </a>
@@ -234,7 +265,7 @@ export default function HomePage() {
             </motion.div>
           )}
 
-          {/* ── Step 2: angle preview ──────────────────────────────────── */}
+          {/* ── Preview ── */}
           {showPreview && (
             <motion.div
               key="preview"
@@ -255,7 +286,6 @@ export default function HomePage() {
         </AnimatePresence>
       </div>
 
-      {/* Concurrent run warning modal */}
       {showConcurrentWarning && (
         <ConcurrentRunWarning
           activeCount={activeCount}
