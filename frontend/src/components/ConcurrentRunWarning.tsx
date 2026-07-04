@@ -22,18 +22,28 @@ export function ConcurrentRunWarning({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(13,20,32,0.85)" }}
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm space-y-4 rounded-2xl border border-white/10 bg-zinc-900 p-6"
+        className="w-full max-w-sm space-y-4 p-6"
+        style={{
+          background: "var(--chorus-surface)",
+          border: "1px solid var(--chorus-border)",
+          borderTop: "2px solid var(--chorus-gold)",
+          borderRadius: "4px",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-white">
+          <p
+            className="text-sm font-semibold"
+            style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
+          >
             {isBlocked ? "Max concurrent runs reached" : "A run is already in progress"}
           </p>
-          <p className="text-xs leading-relaxed text-white/40">
+          <p className="text-xs leading-relaxed" style={{ color: "var(--chorus-muted)" }}>
             {isBlocked
               ? "You already have 2 research runs active. Wait for one to finish before starting another."
               : "One research run is active in the background. Starting another costs 5 additional credits."}
@@ -41,23 +51,42 @@ export function ConcurrentRunWarning({
         </div>
 
         {!isBlocked && (
-          <div className="flex items-center justify-between rounded-xl border border-white/8 bg-white/3 px-4 py-2.5">
-            <span className="text-xs text-white/50">Additional cost</span>
-            <span className="font-mono text-xs text-white">5 ◉</span>
+          <div
+            className="flex items-center justify-between px-4 py-2.5"
+            style={{
+              border: "1px solid var(--chorus-border)",
+              borderRadius: "4px",
+              background: "var(--chorus-bg)",
+            }}
+          >
+            <span className="text-xs" style={{ color: "var(--chorus-muted)" }}>Additional cost</span>
+            <span className="font-mono text-xs" style={{ color: "var(--chorus-gold)" }}>5 ◉</span>
           </div>
         )}
 
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-white/40 transition-colors hover:text-white/70"
+            className="flex-1 py-2.5 text-sm transition-colors"
+            style={{
+              border: "1px solid var(--chorus-border)",
+              borderRadius: "4px",
+              color: "var(--chorus-muted)",
+              background: "transparent",
+            }}
           >
             {isBlocked ? "OK" : "Cancel"}
           </button>
           {!isBlocked && (
             <button
               onClick={onConfirm}
-              className="flex-1 rounded-xl bg-white py-2.5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-white/90"
+              className="flex-1 py-2.5 text-sm font-semibold transition-colors"
+              style={{
+                background: "var(--chorus-gold)",
+                color: "var(--chorus-bg)",
+                borderRadius: "4px",
+                border: "none",
+              }}
             >
               Start anyway
             </button>

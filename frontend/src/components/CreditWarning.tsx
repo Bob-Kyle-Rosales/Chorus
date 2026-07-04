@@ -16,17 +16,29 @@ export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditW
   return (
     /* Backdrop */
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(13,20,32,0.85)" }}
       onClick={onCancel}
     >
       {/* Panel — stop propagation so clicks inside don't close */}
       <div
-        className="w-full max-w-sm space-y-5 rounded-2xl border border-white/10 bg-zinc-900 p-6"
+        className="w-full max-w-sm space-y-5 p-6"
+        style={{
+          background: "var(--chorus-surface)",
+          border: "1px solid var(--chorus-border)",
+          borderTop: "2px solid var(--chorus-gold)",
+          borderRadius: "4px",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-white">Start new research?</p>
-          <p className="text-xs leading-relaxed text-white/40">
+          <p
+            className="text-sm font-semibold"
+            style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
+          >
+            Start new research?
+          </p>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--chorus-muted)" }}>
             This follow-up introduces a new topic. Chorus will run a full pipeline — planner, 3
             researchers, critic, and synthesizer.
           </p>
@@ -34,13 +46,30 @@ export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditW
 
         {/* Cost row */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between rounded-xl border border-white/8 bg-white/3 px-4 py-2.5">
-            <span className="text-xs text-white/50">Cost</span>
-            <span className="font-mono text-xs text-white">5 ◉</span>
+          <div
+            className="flex items-center justify-between px-4 py-2.5"
+            style={{
+              border: "1px solid var(--chorus-border)",
+              borderRadius: "4px",
+              background: "var(--chorus-bg)",
+            }}
+          >
+            <span className="text-xs" style={{ color: "var(--chorus-muted)" }}>Cost</span>
+            <span className="font-mono text-xs" style={{ color: "var(--chorus-gold)" }}>5 ◉</span>
           </div>
-          <div className="flex items-center justify-between rounded-xl border border-white/8 bg-white/3 px-4 py-2.5">
-            <span className="text-xs text-white/50">Your balance</span>
-            <span className={`font-mono text-xs ${canAfford ? "text-white" : "text-red-400"}`}>
+          <div
+            className="flex items-center justify-between px-4 py-2.5"
+            style={{
+              border: "1px solid var(--chorus-border)",
+              borderRadius: "4px",
+              background: "var(--chorus-bg)",
+            }}
+          >
+            <span className="text-xs" style={{ color: "var(--chorus-muted)" }}>Your balance</span>
+            <span
+              className="font-mono text-xs"
+              style={{ color: canAfford ? "var(--chorus-gold)" : "#f87171" }}
+            >
               {creditsRemaining} ◉
             </span>
           </div>
@@ -48,7 +77,7 @@ export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditW
 
         {/* Insufficient credits warning */}
         {!canAfford && (
-          <p className="text-xs leading-relaxed text-red-400">
+          <p className="text-xs leading-relaxed" style={{ color: "#f87171" }}>
             Insufficient credits. Your balance resets daily at midnight UTC.
           </p>
         )}
@@ -57,14 +86,26 @@ export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditW
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm text-white/40 transition-colors hover:text-white/70"
+            className="flex-1 py-2.5 text-sm transition-colors"
+            style={{
+              border: "1px solid var(--chorus-border)",
+              borderRadius: "4px",
+              color: "var(--chorus-muted)",
+              background: "transparent",
+            }}
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={!canAfford}
-            className="flex-1 rounded-xl bg-white py-2.5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-white/90 disabled:opacity-40"
+            className="flex-1 py-2.5 text-sm font-semibold transition-colors disabled:opacity-40"
+            style={{
+              background: "var(--chorus-gold)",
+              color: "var(--chorus-bg)",
+              borderRadius: "4px",
+              border: "none",
+            }}
           >
             Start research
           </button>

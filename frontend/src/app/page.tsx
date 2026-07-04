@@ -146,7 +146,7 @@ export default function LandingPage() {
               Research that challenges itself
             </h2>
           </div>
-          <div className="grid gap-px sm:grid-cols-2 lg:grid-cols-3" style={{ border: "1px solid var(--chorus-border)" }}>
+          <div className="grid gap-px sm:grid-cols-2 lg:grid-cols-3" style={{ border: "1px solid var(--chorus-border)", background: "var(--chorus-border)" }}>
             {FEATURES.map((f) => (
               <div
                 key={f.title}
