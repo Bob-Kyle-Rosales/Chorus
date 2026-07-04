@@ -16,7 +16,7 @@
 #   POST  /sessions/{id}/followup  — route + answer a follow-up question
 
 import uuid
-from datetime import datetime, timezone
+from chorus.db.models import _utcnow as _db_utcnow
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -119,7 +119,6 @@ async def create_session(
     # Deduct 5 credits for the full pipeline run (402 if insufficient).
     await spend_credits(db, current_user["user_id"], 5)
 
-    now = datetime.now(timezone.utc)
     session = ResearchSession(
         id=str(uuid.uuid4()),
         user_id=current_user["user_id"],
@@ -128,8 +127,6 @@ async def create_session(
         angles=[a.model_dump() for a in preview["angles"]],
         report=None,
         findings_text=None,
-        created_at=now,
-        last_active=now,
     )
     db.add(session)
     await db.flush()
@@ -230,7 +227,7 @@ async def name_session(
 
     name = response.content.strip().strip(".,!?")[:80]
     session.name = name
-    session.last_active = datetime.now(timezone.utc)
+    session.last_active = _db_utcnow()
     await db.flush()
 
     return {"name": name}
@@ -261,7 +258,7 @@ async def store_report(
         f"{f.get('claim', '')} {f.get('support', '')}"
         for f in report_data.get("key_findings", [])
     )
-    session.last_active = datetime.now(timezone.utc)
+    session.last_active = _db_utcnow()
     await db.flush()
 
     return {"ok": True}
@@ -296,7 +293,7 @@ async def append_message(
         content=body.content,
         report=body.report,
     ))
-    session.last_active = datetime.now(timezone.utc)
+    session.last_active = _db_utcnow()
     await db.flush()
 
     return {"ok": True}

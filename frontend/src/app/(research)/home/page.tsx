@@ -244,7 +244,7 @@ export default function HomePage() {
                 >
                   <p
                     className="mb-3 font-mono text-xs tracking-widest uppercase"
-                    style={{ color: "var(--chorus-border)" }}
+                    style={{ color: "var(--chorus-muted)" }}
                   >
                     Recent sessions
                   </p>

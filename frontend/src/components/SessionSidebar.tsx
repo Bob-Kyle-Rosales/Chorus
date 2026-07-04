@@ -92,7 +92,7 @@ function SessionEntry({
               if (e.key === "Escape") setEditing(false)
             }}
             onBlur={commitRename}
-            className="w-full rounded px-2 py-1 text-xs outline-none"
+            className="w-full rounded px-2 py-1 text-[15px] outline-none"
             style={{
               background: "var(--chorus-bg)",
               border: "1px solid var(--chorus-gold)",
@@ -113,13 +113,8 @@ function SessionEntry({
             />
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs leading-snug">
-              {session.name ?? session.question}
-            </p>
-            <p
-              className="mt-0.5 text-[10px]"
-              style={{ color: "var(--chorus-border)" }}
-            >
+            <p className="truncate text-[15px] leading-snug">{session.name ?? session.question}</p>
+            <p className="mt-0.5 text-[13px]" style={{ color: "var(--chorus-muted)" }}>
               {formatDate(session.last_active)}
             </p>
           </div>
@@ -133,7 +128,7 @@ function SessionEntry({
             e.preventDefault()
             setMenuOpen((v) => !v)
           }}
-          className="absolute top-2 right-2 hidden rounded px-1 py-0.5 text-xs opacity-60 transition-opacity hover:opacity-100 group-hover:block"
+          className="absolute top-1.5 right-1.5 rounded px-2 py-1 text-[20px] leading-none opacity-20 transition-opacity group-hover:opacity-70 hover:!opacity-100"
           style={{ color: "var(--chorus-muted)", background: "var(--chorus-surface)" }}
           aria-label="Session options"
         >
@@ -153,7 +148,7 @@ function SessionEntry({
         >
           <button
             onClick={startRename}
-            className="w-full px-3 py-1.5 text-left text-xs transition-colors hover:opacity-80"
+            className="w-full px-3 py-1.5 text-left text-[15px] transition-colors hover:opacity-80"
             style={{ color: "var(--chorus-text)" }}
           >
             Rename
@@ -163,7 +158,7 @@ function SessionEntry({
               setMenuOpen(false)
               onDelete(session.id)
             }}
-            className="w-full px-3 py-1.5 text-left text-xs transition-colors hover:opacity-80"
+            className="w-full px-3 py-1.5 text-left text-[15px] transition-colors hover:opacity-80"
             style={{ color: "#ef4444" }}
           >
             Delete
@@ -177,8 +172,7 @@ function SessionEntry({
 export function SessionSidebar() {
   const router = useRouter()
   const pathname = usePathname()
-  const { sessions, credits, activeConnections, setSessions, updateSessionName } =
-    useSessionStore()
+  const { sessions, credits, activeConnections, setSessions, updateSessionName } = useSessionStore()
   const { clearAuth, user } = useAuthStore()
 
   const activeId = pathname.startsWith("/run/") ? pathname.split("/")[2] : null
@@ -209,10 +203,7 @@ export function SessionSidebar() {
       }}
     >
       {/* Header */}
-      <div
-        className="px-4 py-4"
-        style={{ borderBottom: "1px solid var(--chorus-border)" }}
-      >
+      <div className="px-4 py-4" style={{ borderBottom: "1px solid var(--chorus-border)" }}>
         <Link
           href="/home"
           className="text-lg tracking-wide transition-opacity hover:opacity-70"
@@ -226,10 +217,10 @@ export function SessionSidebar() {
       <div className="px-3 py-3">
         <Link
           href="/home"
-          className="flex w-full items-center gap-2 rounded px-3 py-2 text-xs transition-colors hover:opacity-80"
+          className="flex w-full items-center gap-2 rounded px-3 py-2 text-[15px] transition-colors hover:opacity-80"
           style={{
             border: "1px solid var(--chorus-border)",
-            color: "var(--chorus-muted)",
+            color: "var(--chorus-text)",
           }}
         >
           <span style={{ color: "var(--chorus-gold)" }}>+</span>
@@ -241,10 +232,10 @@ export function SessionSidebar() {
       <nav className="flex-1 overflow-y-auto py-1">
         {sessions.length === 0 ? (
           <p
-            className="px-4 py-6 text-center text-[11px] leading-relaxed"
-            style={{ color: "var(--chorus-border)" }}
+            className="px-4 py-6 text-center text-[15px] leading-relaxed"
+            style={{ color: "var(--chorus-muted)" }}
           >
-            Your research sessions will appear here
+            Your research sessions
           </p>
         ) : (
           sessions.map((s) => (
@@ -261,22 +252,19 @@ export function SessionSidebar() {
       </nav>
 
       {/* User footer */}
-      <div
-        className="space-y-3 px-4 py-4"
-        style={{ borderTop: "1px solid var(--chorus-border)" }}
-      >
+      <div className="space-y-3 px-4 py-4" style={{ borderTop: "1px solid var(--chorus-border)" }}>
         {user && (
-          <p className="truncate text-xs" style={{ color: "var(--chorus-muted)" }}>
+          <p className="truncate text-[15px]" style={{ color: "var(--chorus-muted)" }}>
             {user.first_name} {user.last_name}
           </p>
         )}
-        <p className="font-mono text-xs" style={{ color: "var(--chorus-gold)" }}>
+        <p className="font-mono text-[15px]" style={{ color: "var(--chorus-gold)" }}>
           {credits} ◉
         </p>
         <button
           onClick={handleLogout}
-          className="text-xs transition-colors hover:opacity-80"
-          style={{ color: "var(--chorus-border)" }}
+          className="cursor-pointer text-[15px] transition-colors hover:opacity-80"
+          style={{ color: "var(--chorus-muted)" }}
         >
           Sign out
         </button>

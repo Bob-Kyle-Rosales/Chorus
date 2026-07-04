@@ -48,8 +48,8 @@
   --chorus-bg: #0d1420;
   --chorus-surface: #141e2e;
   --chorus-border: #2a3644;
-  --chorus-text: #eee3c8;
-  --chorus-muted: #c3b795;
+  --chorus-text: #ffffff;
+  --chorus-muted: #d6cdb5;
   --chorus-gold: #c9a24a;
   --chorus-gold-dim: #a8823a;
   --chorus-blue: #7fb8d8;
@@ -85,12 +85,15 @@
   body {
     background: var(--chorus-bg);
     color: var(--chorus-text);
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    line-height: 1.6;
   }
   html {
     @apply font-sans;
   }
   ::placeholder {
-    color: var(--chorus-border);
+    color: var(--chorus-muted);
     opacity: 1;
   }
 }
