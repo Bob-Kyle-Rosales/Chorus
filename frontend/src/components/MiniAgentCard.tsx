@@ -1,48 +1,47 @@
 "use client"
 
-import { Check } from "lucide-react"
 import type { AgentState } from "@/types/events"
 
-// Compact single-row agent status — used inside PipelineFollowUp's
-// collapsible agent activity panel. Does not replace AgentCard (the large
-// card used for the original run). MiniAgentCard is dense: one line per agent.
-
-interface MiniAgentCardProps {
-  agent: AgentState
+const AGENT_ACCENT: Record<string, string> = {
+  researcher_0: "var(--chorus-blue)",
+  researcher_1: "var(--chorus-green)",
+  researcher_2: "var(--chorus-pink)",
+  critic: "var(--chorus-gold)",
+  synthesizer: "var(--chorus-gold)",
+  planner: "var(--chorus-muted)",
 }
 
-export function MiniAgentCard({ agent }: MiniAgentCardProps) {
-  const isFinished = agent.status === "finished"
+const AGENT_LABEL: Record<string, string> = {
+  researcher_0: "Researcher I",
+  researcher_1: "Researcher II",
+  researcher_2: "Researcher III",
+  critic: "Critic",
+  synthesizer: "Synthesizer",
+  planner: "Planner",
+}
+
+export function MiniAgentCard({ agent }: { agent: AgentState }) {
+  const accent = AGENT_ACCENT[agent.agent_id] ?? "var(--chorus-muted)"
+  const label = AGENT_LABEL[agent.agent_id] ?? agent.agent_id
 
   return (
-    <div className="flex items-start gap-3 py-2 text-xs">
-      {/* Status indicator */}
-      <div className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-        {isFinished ? (
-          <Check className="h-3 w-3 text-emerald-400" />
-        ) : (
-          <span className="block h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
-        )}
-      </div>
-
-      {/* Agent name + live token preview when running */}
-      <div className="min-w-0 flex-1">
-        <p className={`font-mono ${isFinished ? "text-white/30" : "text-white/60"}`}>
-          {agent.agent_id}
-        </p>
-        {!isFinished && agent.tokens && (
-          <p className="mt-0.5 truncate text-[10px] leading-relaxed text-white/20">
-            {agent.tokens.slice(-140)}
-          </p>
-        )}
-      </div>
-
-      {/* Status label */}
-      <span
-        className={`shrink-0 font-mono text-[10px] ${isFinished ? "text-white/20" : "text-yellow-400"}`}
-      >
-        {isFinished ? "done" : "running"}
+    <div
+      className="flex items-center gap-2 rounded px-3 py-2"
+      style={{
+        background: "var(--chorus-surface)",
+        border: "1px solid var(--chorus-border)",
+        borderLeft: `2px solid ${accent}`,
+      }}
+    >
+      <span className="font-mono text-xs" style={{ color: accent }}>
+        {label}
       </span>
+      {agent.status === "running" && (
+        <span
+          className="ml-auto h-1.5 w-1.5 animate-pulse rounded-full"
+          style={{ background: accent }}
+        />
+      )}
     </div>
   )
 }

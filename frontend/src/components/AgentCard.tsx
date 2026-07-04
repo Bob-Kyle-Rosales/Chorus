@@ -1,47 +1,75 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AgentState } from "@/types/events"
 
-const ROLE_STYLES: Record<string, string> = {
-  planner: "bg-white/20 text-white border-white-500/20",
-  researcher: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  critic: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  synthesizer: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+// Per-agent color identity matches the angle preview colors
+const AGENT_ACCENT: Record<string, string> = {
+  researcher_0: "var(--chorus-blue)",
+  researcher_1: "var(--chorus-green)",
+  researcher_2: "var(--chorus-pink)",
+  critic: "var(--chorus-gold)",
+  synthesizer: "var(--chorus-gold)",
+  planner: "var(--chorus-muted)",
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  running: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20 animate-pulse",
-  finished: "bg-green-500/10 text-green-400 border-green-500/20",
+const AGENT_LABEL: Record<string, string> = {
+  researcher_0: "Researcher I",
+  researcher_1: "Researcher II",
+  researcher_2: "Researcher III",
+  critic: "Critic",
+  synthesizer: "Synthesizer",
+  planner: "Planner",
 }
 
 export function AgentCard({ agent }: { agent: AgentState }) {
+  const accent = AGENT_ACCENT[agent.agent_id] ?? "var(--chorus-muted)"
+  const label = AGENT_LABEL[agent.agent_id] ?? agent.agent_id
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      className="flex flex-col rounded"
+      style={{
+        background: "var(--chorus-surface)",
+        border: "1px solid var(--chorus-border)",
+        borderTop: `2px solid ${accent}`,
+      }}
     >
-      <Card className="border-white/10 bg-white/5 backdrop-blur-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="font-mono text-sm text-white/70">{agent.agent_id}</CardTitle>
-          <div className="flex gap-2">
-            <Badge variant="outline" className={ROLE_STYLES[agent.role]}>
-              {agent.role}
-            </Badge>
-            <Badge variant="outline" className={STATUS_STYLES[agent.status]}>
-              {agent.status}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <pre className="max-h-40 overflow-y-auto font-mono text-xs leading-relaxed whitespace-pre-wrap text-white/60">
-            {agent.tokens || (agent.status === "finished" ? "Done." : "Waiting...")}
-          </pre>
-        </CardContent>
-      </Card>
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-4 py-3"
+        style={{ borderBottom: "1px solid var(--chorus-border)" }}
+      >
+        <span
+          className="font-mono text-xs font-medium"
+          style={{ color: accent }}
+        >
+          {label}
+        </span>
+        {agent.status === "running" ? (
+          <span
+            className="h-2 w-2 animate-pulse rounded-full"
+            style={{ background: accent }}
+          />
+        ) : (
+          <span className="font-mono text-[10px]" style={{ color: "var(--chorus-border)" }}>
+            ✓
+          </span>
+        )}
+      </div>
+
+      {/* Token stream */}
+      <div className="flex-1 px-4 py-3">
+        <pre
+          className="max-h-36 overflow-y-auto font-mono text-xs leading-relaxed whitespace-pre-wrap"
+          style={{ color: "var(--chorus-muted)" }}
+        >
+          {agent.tokens || (agent.status === "finished" ? "Done." : "Waiting…")}
+        </pre>
+      </div>
     </motion.div>
   )
 }
