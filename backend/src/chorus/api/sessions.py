@@ -364,6 +364,23 @@ async def followup(
 
 
 # ---------------------------------------------------------------------------
+# DELETE /sessions/{session_id}
+# ---------------------------------------------------------------------------
+
+@router.delete("/{session_id}", status_code=204)
+async def delete_session(
+    session_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Delete a session owned by the current user. Returns 204 on success."""
+    session = await db.get(ResearchSession, session_id)
+    if not session or session.user_id != current_user["user_id"]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+    await db.delete(session)
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
