@@ -127,7 +127,7 @@ export default function SignUpPage() {
                   required
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Jane"
+                  placeholder="First Name"
                   className="w-full rounded px-4 py-2.5 text-sm outline-none"
                   style={inputStyle}
                   onFocus={handleFocus}
@@ -149,7 +149,7 @@ export default function SignUpPage() {
                   required
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Doe"
+                  placeholder="Last Name"
                   className="w-full rounded px-4 py-2.5 text-sm outline-none"
                   style={inputStyle}
                   onFocus={handleFocus}
@@ -173,7 +173,7 @@ export default function SignUpPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="Email Address"
                 className="w-full rounded px-4 py-2.5 text-sm outline-none"
                 style={inputStyle}
                 onFocus={handleFocus}
@@ -196,7 +196,7 @@ export default function SignUpPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
+                placeholder="Password"
                 className="w-full rounded px-4 py-2.5 text-sm outline-none"
                 style={inputStyle}
                 onFocus={handleFocus}
@@ -219,7 +219,7 @@ export default function SignUpPage() {
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Confirm Password"
                 className="w-full rounded px-4 py-2.5 text-sm outline-none"
                 style={inputStyle}
                 onFocus={handleFocus}
@@ -230,7 +230,10 @@ export default function SignUpPage() {
             {error && (
               <p
                 className="rounded px-4 py-3 text-sm text-red-400"
-                style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}
+                style={{
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                }}
               >
                 {error}
               </p>

@@ -94,8 +94,8 @@ export default function SignInPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded px-4 py-2.5 text-sm outline-none transition-colors"
+                placeholder="Email Address"
+                className="w-full rounded px-4 py-2.5 text-sm transition-colors outline-none"
                 style={{
                   background: "var(--chorus-bg)",
                   border: "1px solid var(--chorus-border)",
@@ -122,7 +122,7 @@ export default function SignInPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded px-4 py-2.5 text-sm outline-none transition-colors"
+                className="w-full rounded px-4 py-2.5 text-sm transition-colors outline-none"
                 style={{
                   background: "var(--chorus-bg)",
                   border: "1px solid var(--chorus-border)",
@@ -134,7 +134,13 @@ export default function SignInPage() {
             </div>
 
             {error && (
-              <p className="rounded px-4 py-3 text-sm text-red-400" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+              <p
+                className="rounded px-4 py-3 text-sm text-red-400"
+                style={{
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                }}
+              >
                 {error}
               </p>
             )}

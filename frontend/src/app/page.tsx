@@ -29,14 +29,6 @@ const FEATURES = [
   },
 ]
 
-const STACK = [
-  "LangGraph",
-  "Groq · Llama 3",
-  "Tavily",
-  "FastAPI",
-  "Next.js 16",
-  "Tailwind v4",
-]
 
 export default function LandingPage() {
   return (
@@ -159,7 +151,7 @@ export default function LandingPage() {
                 >
                   {f.title}
                 </h3>
-                <p className="text-sm leading-relaxed" style={{ color: "var(--chorus-muted)" }}>
+                <p className="text-base leading-relaxed" style={{ color: "var(--chorus-muted)" }}>
                   {f.body}
                 </p>
               </div>
@@ -193,45 +185,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <pre
-            className="mb-8 overflow-x-auto rounded p-6 font-mono text-xs leading-relaxed"
-            style={{
-              background: "var(--chorus-surface)",
-              border: "1px solid var(--chorus-border)",
-              color: "var(--chorus-muted)",
-            }}
-          >{`question
-   │
-   ▼
-planner ─────────────────────────── Llama 3.1 8B
-   │
-   ├─── researcher_0 ───┐
-   ├─── researcher_1 ───┤  parallel   Llama 3.3 70B + Tavily
-   └─── researcher_2 ───┘
-              │
-              ▼
-           critic ──────────────────── Llama 3.3 70B
-              │
-              ▼
-        synthesizer ────────────────── Llama 3.3 70B
-              │
-              ▼
-           report`}</pre>
-
-          <div className="flex flex-wrap justify-center gap-2">
-            {STACK.map((tech) => (
-              <span
-                key={tech}
-                className="rounded border px-3 py-1 font-mono text-xs"
-                style={{
-                  borderColor: "var(--chorus-border)",
-                  color: "var(--chorus-muted)",
-                }}
-              >
-                {tech}
-              </span>
-            ))}
-          </div>
+          <ArchitectureDiagram />
         </div>
       </section>
 
@@ -269,6 +223,144 @@ planner ────────────────────────
           Chorus · Multi-agent AI research · LangGraph · Groq · Next.js
         </p>
       </footer>
+    </div>
+  )
+}
+
+// ── Architecture flow diagram ───────────────────────────────────────────────
+function ArchitectureDiagram() {
+  const W = 640
+  const H = 420
+  const border = "#2a3644"
+  const surface = "#141e2e"
+  const gold = "#c9a24a"
+  const muted = "#c3b795"
+  const faint = "#c3b79540"
+
+  // Box dimensions
+  const plannerW = 180; const plannerH = 40
+  const plannerX = (W - plannerW) / 2; const plannerY = 40
+
+  const resW = 150; const resH = 40
+  const resY = 160
+  const resX = [40, (W - resW) / 2, W - 40 - resW]
+
+  const criticW = 180; const criticH = 40
+  const criticX = (W - criticW) / 2; const criticY = 280
+
+  const synthW = 180; const synthH = 40
+  const synthX = (W - synthW) / 2; const synthY = 360
+
+  // Connection y helpers
+  const plannerBottom = plannerY + plannerH
+  const resTop = resY
+  const resBottom = resY + resH
+  const criticTop = criticY
+  const criticBottom = criticY + criticH
+  const synthTop = synthY
+
+  // Fan-out y and fan-in y
+  const fanOutY = plannerBottom + (resTop - plannerBottom) / 2
+  const fanInY = resBottom + (criticTop - resBottom) / 2
+
+  // Center-x of each researcher
+  const resCX = resX.map((x) => x + resW / 2)
+  const plannerCX = plannerX + plannerW / 2
+  const criticCX = criticX + criticW / 2
+  const synthCX = synthX + synthW / 2
+
+  const lineProps = { stroke: border, strokeWidth: 1 }
+  const arrowHead = (x: number, y: number) => (
+    <polygon points={`${x},${y} ${x - 4},${y - 7} ${x + 4},${y - 7}`} fill={border} />
+  )
+
+  return (
+    <div className="overflow-x-auto">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        style={{ maxWidth: W, display: "block", margin: "0 auto" }}
+        aria-label="Chorus agent pipeline architecture"
+      >
+        {/* ── Input label ── */}
+        <text x={plannerCX} y={24} textAnchor="middle" fontSize={11} fontFamily="monospace" fill={muted}>
+          question
+        </text>
+        {/* Question → Planner */}
+        <line x1={plannerCX} y1={28} x2={plannerCX} y2={plannerY} {...lineProps} />
+        {arrowHead(plannerCX, plannerY)}
+
+        {/* ── Planner box ── */}
+        <rect x={plannerX} y={plannerY} width={plannerW} height={plannerH} rx={3} fill={surface} stroke={gold} strokeWidth={1.5} />
+        <text x={plannerCX} y={plannerY + 15} textAnchor="middle" fontSize={10} fontFamily="monospace" fill={muted} letterSpacing={1}>PLANNER</text>
+        <text x={plannerCX} y={plannerY + 29} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={border}>Llama 3.1 8B</text>
+
+        {/* Planner → fan-out horizontal */}
+        <line x1={plannerCX} y1={plannerBottom} x2={plannerCX} y2={fanOutY} {...lineProps} />
+        <line x1={resCX[0]} y1={fanOutY} x2={resCX[2]} y2={fanOutY} {...lineProps} />
+        {/* Down to each researcher */}
+        {resCX.map((cx) => (
+          <g key={cx}>
+            <line x1={cx} y1={fanOutY} x2={cx} y2={resTop} {...lineProps} />
+            {arrowHead(cx, resTop)}
+          </g>
+        ))}
+
+        {/* ── Researcher boxes ── */}
+        {resX.map((x, i) => {
+          const cx = resCX[i]
+          const colors = [
+            { stroke: "#7fb8d8", label: "RESEARCHER I" },
+            { stroke: "#8fcbaa", label: "RESEARCHER II" },
+            { stroke: "#c98aa8", label: "RESEARCHER III" },
+          ]
+          return (
+            <g key={i}>
+              <rect x={x} y={resY} width={resW} height={resH} rx={3} fill={surface} stroke={colors[i].stroke} strokeWidth={1} />
+              <text x={cx} y={resY + 15} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={colors[i].stroke} letterSpacing={0.5}>
+                {colors[i].label}
+              </text>
+              <text x={cx} y={resY + 29} textAnchor="middle" fontSize={8} fontFamily="monospace" fill={border}>
+                70B · Tavily
+              </text>
+            </g>
+          )
+        })}
+
+        {/* Parallel brace label */}
+        <text x={plannerCX} y={fanOutY + 12} textAnchor="middle" fontSize={8} fontFamily="monospace" fill={faint}>
+          parallel
+        </text>
+
+        {/* Fan-in from researchers → Critic */}
+        {resCX.map((cx) => (
+          <line key={cx} x1={cx} y1={resBottom} x2={cx} y2={fanInY} {...lineProps} />
+        ))}
+        <line x1={resCX[0]} y1={fanInY} x2={resCX[2]} y2={fanInY} {...lineProps} />
+        <line x1={criticCX} y1={fanInY} x2={criticCX} y2={criticTop} {...lineProps} />
+        {arrowHead(criticCX, criticTop)}
+
+        {/* ── Critic box ── */}
+        <rect x={criticX} y={criticY} width={criticW} height={criticH} rx={3} fill={surface} stroke={gold} strokeWidth={1.5} />
+        <text x={criticCX} y={criticY + 15} textAnchor="middle" fontSize={10} fontFamily="monospace" fill={muted} letterSpacing={1}>CRITIC</text>
+        <text x={criticCX} y={criticY + 29} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={border}>Llama 3.3 70B</text>
+
+        {/* Critic → Synthesizer */}
+        <line x1={criticCX} y1={criticBottom} x2={synthCX} y2={synthTop} {...lineProps} />
+        {arrowHead(synthCX, synthTop)}
+
+        {/* ── Synthesizer box ── */}
+        <rect x={synthX} y={synthY} width={synthW} height={synthH} rx={3} fill={surface} stroke={gold} strokeWidth={1.5} />
+        <text x={synthCX} y={synthY + 15} textAnchor="middle" fontSize={10} fontFamily="monospace" fill={muted} letterSpacing={1}>SYNTHESIZER</text>
+        <text x={synthCX} y={synthY + 29} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={border}>Llama 3.3 70B</text>
+
+        {/* Synthesizer → Report */}
+        <line x1={synthCX} y1={synthY + synthH} x2={synthCX} y2={H - 24} {...lineProps} />
+        {arrowHead(synthCX, H - 24)}
+        <text x={synthCX} y={H - 8} textAnchor="middle" fontSize={11} fontFamily="monospace" fill={gold}>
+          report
+        </text>
+      </svg>
     </div>
   )
 }
