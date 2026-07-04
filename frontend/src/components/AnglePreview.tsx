@@ -5,9 +5,9 @@ import type { AnglePlan } from "@/types/events"
 
 // Per-researcher color accent — blue / green / pink
 const ANGLE_ACCENTS = [
-  "var(--chorus-blue)",
-  "var(--chorus-green)",
-  "var(--chorus-pink)",
+  { var: "var(--chorus-blue)",  hex: "#7fb8d8" },
+  { var: "var(--chorus-green)", hex: "#8fcbaa" },
+  { var: "var(--chorus-pink)",  hex: "#c98aa8" },
 ]
 
 const RESEARCHER_LABELS = ["Researcher I", "Researcher II", "Researcher III"]
@@ -53,7 +53,7 @@ export function AnglePreview({ question, angles, onBack, onConfirm, loading }: A
           Research plan
         </p>
         {angles.map((angle, i) => {
-          const accent = ANGLE_ACCENTS[i] ?? "var(--chorus-muted)"
+          const accent = ANGLE_ACCENTS[i] ?? { var: "var(--chorus-muted)", hex: "#c3b795" }
           return (
             <motion.div
               key={angle.angle_id}
@@ -64,16 +64,16 @@ export function AnglePreview({ question, angles, onBack, onConfirm, loading }: A
               style={{
                 background: "var(--chorus-surface)",
                 border: "1px solid var(--chorus-border)",
-                borderLeft: `3px solid ${accent}`,
+                borderLeft: `3px solid ${accent.var}`,
               }}
             >
               {/* Researcher label badge */}
               <span
                 className="mt-0.5 shrink-0 rounded px-2 py-0.5 font-mono text-[10px] font-medium"
                 style={{
-                  color: accent,
-                  background: `${accent}18`,
-                  border: `1px solid ${accent}40`,
+                  color: accent.var,
+                  background: `${accent.hex}18`,
+                  border: `1px solid ${accent.hex}40`,
                 }}
               >
                 {RESEARCHER_LABELS[i] ?? `Researcher ${i + 1}`}
