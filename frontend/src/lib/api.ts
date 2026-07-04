@@ -87,6 +87,9 @@ export const api = {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })
   },
+  delete<T = unknown>(path: string) {
+    return request<T>(path, { method: "DELETE" })
+  },
 }
 
 export { ApiError }

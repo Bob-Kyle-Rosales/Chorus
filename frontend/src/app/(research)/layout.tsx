@@ -71,14 +71,16 @@ export default function ResearchLayout({ children }: { children: React.ReactNode
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <div className="animate-pulse font-mono text-sm text-white/20">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--chorus-bg)" }}>
+        <div className="animate-pulse font-mono text-xs" style={{ color: "var(--chorus-border)" }}>
+          Loading…
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-zinc-950 text-white">
+    <div className="flex h-screen overflow-hidden" style={{ background: "var(--chorus-bg)", color: "var(--chorus-text)" }}>
       <SessionSidebar />
       <div className="flex-1 overflow-y-auto">{children}</div>
     </div>
