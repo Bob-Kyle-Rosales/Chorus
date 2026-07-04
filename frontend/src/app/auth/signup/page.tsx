@@ -59,124 +59,204 @@ export default function SignUpPage() {
     }
   }
 
+  const inputStyle = {
+    background: "var(--chorus-bg)",
+    border: "1px solid var(--chorus-border)",
+    color: "var(--chorus-text)",
+  }
+
+  function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
+    e.currentTarget.style.borderColor = "var(--chorus-gold)"
+  }
+  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+    e.currentTarget.style.borderColor = "var(--chorus-border)"
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-6 text-white">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="space-y-1 text-center">
-          <Link
-            href="/"
-            className="text-2xl font-bold tracking-tight transition-opacity hover:opacity-80"
-          >
-            Chorus
-          </Link>
-          <p className="text-sm text-white/40">Create your free account</p>
-        </div>
+    <main
+      className="flex min-h-screen flex-col items-center justify-center p-6"
+      style={{ background: "var(--chorus-bg)" }}
+    >
+      {/* Wordmark */}
+      <Link
+        href="/"
+        className="mb-8 text-2xl tracking-wide transition-opacity hover:opacity-70"
+        style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
+      >
+        Chorus
+      </Link>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name row — side by side */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <label htmlFor="firstName" className="text-xs tracking-wider text-white/50 uppercase">
-                First name
-              </label>
-              <input
-                id="firstName"
-                type="text"
-                autoComplete="given-name"
-                autoFocus
-                required
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Jane"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/20 focus:ring-2 focus:ring-white/20 focus:outline-none"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="lastName" className="text-xs tracking-wider text-white/50 uppercase">
-                Last name
-              </label>
-              <input
-                id="lastName"
-                type="text"
-                autoComplete="family-name"
-                required
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Doe"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/20 focus:ring-2 focus:ring-white/20 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-xs tracking-wider text-white/50 uppercase">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/20 focus:ring-2 focus:ring-white/20 focus:outline-none"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-xs tracking-wider text-white/50 uppercase">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/20 focus:ring-2 focus:ring-white/20 focus:outline-none"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="confirm" className="text-xs tracking-wider text-white/50 uppercase">
-              Confirm password
-            </label>
-            <input
-              id="confirm"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="••••••••"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/20 focus:ring-2 focus:ring-white/20 focus:outline-none"
-            />
-          </div>
-
-          {error && (
-            <p className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
-              {error}
+      {/* Card */}
+      <div
+        className="w-full max-w-sm rounded"
+        style={{
+          background: "var(--chorus-surface)",
+          border: "1px solid var(--chorus-border)",
+          borderTop: "2px solid var(--chorus-gold)",
+        }}
+      >
+        <div className="space-y-6 p-8">
+          <div>
+            <h1
+              className="text-xl font-medium"
+              style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
+            >
+              Create account
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: "var(--chorus-muted)" }}>
+              Free tier — 20 credits per day
             </p>
-          )}
+          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-white py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-white/90 disabled:opacity-40"
-          >
-            {loading ? "Creating account..." : "Create account"}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="firstName"
+                  className="font-mono text-xs tracking-widest uppercase"
+                  style={{ color: "var(--chorus-muted)" }}
+                >
+                  First name
+                </label>
+                <input
+                  id="firstName"
+                  type="text"
+                  autoComplete="given-name"
+                  autoFocus
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Jane"
+                  className="w-full rounded px-4 py-2.5 text-sm outline-none"
+                  style={inputStyle}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="lastName"
+                  className="font-mono text-xs tracking-widest uppercase"
+                  style={{ color: "var(--chorus-muted)" }}
+                >
+                  Last name
+                </label>
+                <input
+                  id="lastName"
+                  type="text"
+                  autoComplete="family-name"
+                  required
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Doe"
+                  className="w-full rounded px-4 py-2.5 text-sm outline-none"
+                  style={inputStyle}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                />
+              </div>
+            </div>
 
-        <p className="text-center text-sm text-white/30">
-          Already have an account?{" "}
-          <Link href="/auth/signin" className="text-white/60 transition-colors hover:text-white">
-            Sign in
-          </Link>
-        </p>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="email"
+                className="font-mono text-xs tracking-widest uppercase"
+                style={{ color: "var(--chorus-muted)" }}
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded px-4 py-2.5 text-sm outline-none"
+                style={inputStyle}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
+                className="font-mono text-xs tracking-widest uppercase"
+                style={{ color: "var(--chorus-muted)" }}
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="w-full rounded px-4 py-2.5 text-sm outline-none"
+                style={inputStyle}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="confirm"
+                className="font-mono text-xs tracking-widest uppercase"
+                style={{ color: "var(--chorus-muted)" }}
+              >
+                Confirm password
+              </label>
+              <input
+                id="confirm"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded px-4 py-2.5 text-sm outline-none"
+                style={inputStyle}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+              />
+            </div>
+
+            {error && (
+              <p
+                className="rounded px-4 py-3 text-sm text-red-400"
+                style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}
+              >
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded py-2.5 text-sm font-medium transition-opacity disabled:opacity-50"
+              style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
+            >
+              {loading ? "Creating account…" : "Create account"}
+            </button>
+          </form>
+
+          <p className="text-center text-sm" style={{ color: "var(--chorus-muted)" }}>
+            Already have an account?{" "}
+            <Link
+              href="/auth/signin"
+              className="transition-colors"
+              style={{ color: "var(--chorus-gold)" }}
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   )

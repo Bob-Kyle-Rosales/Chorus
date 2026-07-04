@@ -25,8 +25,6 @@ export default function SignInPage() {
         email,
         password,
       })
-      // Fetch user profile with the new token — store it temporarily so
-      // the api wrapper can attach the Authorization header for /auth/me
       useAuthStore.setState({ accessToken: data.access_token })
       const user = await api.get<{
         id: string
@@ -44,73 +42,124 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-6 text-white">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="space-y-1 text-center">
-          <Link
-            href="/"
-            className="text-2xl font-bold tracking-tight transition-opacity hover:opacity-80"
-          >
-            Chorus
-          </Link>
-          <p className="text-sm text-white/40">Sign in to your account</p>
-        </div>
+    <main
+      className="flex min-h-screen flex-col items-center justify-center p-6"
+      style={{ background: "var(--chorus-bg)" }}
+    >
+      {/* Wordmark */}
+      <Link
+        href="/"
+        className="mb-8 text-2xl tracking-wide transition-opacity hover:opacity-70"
+        style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
+      >
+        Chorus
+      </Link>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-xs tracking-wider text-white/50 uppercase">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/20 focus:ring-2 focus:ring-white/20 focus:outline-none"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-xs tracking-wider text-white/50 uppercase">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/20 focus:ring-2 focus:ring-white/20 focus:outline-none"
-            />
-          </div>
-
-          {error && (
-            <p className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
-              {error}
+      {/* Card */}
+      <div
+        className="w-full max-w-sm rounded"
+        style={{
+          background: "var(--chorus-surface)",
+          border: "1px solid var(--chorus-border)",
+          borderTop: "2px solid var(--chorus-gold)",
+        }}
+      >
+        <div className="space-y-6 p-8">
+          <div>
+            <h1
+              className="text-xl font-medium"
+              style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
+            >
+              Sign in
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: "var(--chorus-muted)" }}>
+              Welcome back
             </p>
-          )}
+          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-white py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-white/90 disabled:opacity-40"
-          >
-            {loading ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="email"
+                className="font-mono text-xs tracking-widest uppercase"
+                style={{ color: "var(--chorus-muted)" }}
+              >
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                autoFocus
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded px-4 py-2.5 text-sm outline-none transition-colors"
+                style={{
+                  background: "var(--chorus-bg)",
+                  border: "1px solid var(--chorus-border)",
+                  color: "var(--chorus-text)",
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--chorus-gold)")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--chorus-border)")}
+              />
+            </div>
 
-        <p className="text-center text-sm text-white/30">
-          No account?{" "}
-          <Link href="/auth/signup" className="text-white/60 transition-colors hover:text-white">
-            Create one
-          </Link>
-        </p>
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
+                className="font-mono text-xs tracking-widest uppercase"
+                style={{ color: "var(--chorus-muted)" }}
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded px-4 py-2.5 text-sm outline-none transition-colors"
+                style={{
+                  background: "var(--chorus-bg)",
+                  border: "1px solid var(--chorus-border)",
+                  color: "var(--chorus-text)",
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--chorus-gold)")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--chorus-border)")}
+              />
+            </div>
+
+            {error && (
+              <p className="rounded px-4 py-3 text-sm text-red-400" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded py-2.5 text-sm font-medium transition-opacity disabled:opacity-50"
+              style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
+            >
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
+
+          <p className="text-center text-sm" style={{ color: "var(--chorus-muted)" }}>
+            No account?{" "}
+            <Link
+              href="/auth/signup"
+              className="transition-colors"
+              style={{ color: "var(--chorus-gold)" }}
+            >
+              Create one
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   )
