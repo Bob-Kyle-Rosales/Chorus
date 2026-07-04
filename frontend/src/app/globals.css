@@ -89,4 +89,8 @@
   html {
     @apply font-sans;
   }
+  ::placeholder {
+    color: var(--chorus-border);
+    opacity: 1;
+  }
 }
