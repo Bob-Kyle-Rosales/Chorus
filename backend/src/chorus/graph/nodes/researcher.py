@@ -28,6 +28,7 @@
 #   - assert_safe_url() blocks SSRF before every fetch (see security/fetch_guard.py)
 #   - wrap_untrusted() tags all fetched content as data-not-instructions (see security/untrusted.py)
 
+import asyncio
 import json
 from datetime import datetime, timezone
 
@@ -40,7 +41,7 @@ from chorus.config import settings
 from chorus.graph.state import GraphState
 from chorus.llm import smart_llm
 from chorus.schemas import Citation, Finding, ResearcherOutput
-from chorus.security.fetch_guard import UnsafeURLError, assert_safe_url
+from chorus.security.fetch_guard import assert_safe_url
 from chorus.security.untrusted import wrap_untrusted
 
 
@@ -121,16 +122,31 @@ async def researcher_node(state: GraphState, angle_index: int = 0) -> dict:
     # ------------------------------------------------------------------
     # Import here (not at module level) so the module loads even if
     # TAVILY_API_KEY is not set — the error only appears when a run starts.
-    from tavily import TavilyClient
-    tavily = TavilyClient(api_key=settings.tavily_api_key)
+    #
+    # AsyncTavilyClient, not TavilyClient — TavilyClient.search() is a plain
+    # synchronous call with no `await`. Running that inside an async function
+    # doesn't make it non-blocking; it freezes the entire asyncio event loop
+    # for as long as the HTTP request takes, which stalls every other
+    # concurrent run on this process and keeps websocket_run's
+    # asyncio.wait_for timeout from being able to fire until the blocking
+    # call finally returns control. Found via a live test where a run kept
+    # streaming tokens well past its configured timeout.
+    from tavily import AsyncTavilyClient
+    tavily = AsyncTavilyClient(api_key=settings.tavily_api_key)
 
-    # Search with ALL seeds and combine results.
+    # Search all seeds concurrently, not one after another — they're
+    # independent queries, and now that both are real async calls there's no
+    # reason to wait for one before starting the next.
+    # max_results=3 per seed keeps the total manageable (2 seeds × 3 = up to 6 results).
+    seed_result_batches = await asyncio.gather(
+        *(tavily.search(query=seed, max_results=3) for seed in angle.search_seeds)
+    )
+
+    # Combine results from all seeds.
     # Each seed targets a different facet of the angle — using all of them
     # gives the researcher broader, more diverse sources to reason from.
-    # max_results=3 per seed keeps the total manageable (3 seeds × 3 = up to 9 results).
     all_results = []
-    for seed in angle.search_seeds:
-        seed_results = tavily.search(query=seed, max_results=3)
+    for seed_results in seed_result_batches:
         all_results.extend(seed_results.get("results", []))
 
     # Deduplicate by URL — the same page can appear across multiple seed searches.
@@ -171,7 +187,11 @@ async def researcher_node(state: GraphState, angle_index: int = 0) -> dict:
                 # Extract clean article text from HTML.
                 # trafilatura removes navigation, ads, footers, and other noise.
                 raw_html = response.text
-                extracted = trafilatura.extract(raw_html) or snippet   # fall back to snippet if extraction fails
+                # trafilatura.extract is synchronous, CPU-bound HTML parsing —
+                # to_thread hands it to a worker thread so it doesn't freeze
+                # the event loop for everyone else while it runs (same class
+                # of issue as the blocking Tavily client above).
+                extracted = await asyncio.to_thread(trafilatura.extract, raw_html) or snippet
                 extracted = extracted[:settings.max_fetch_bytes]       # cap size
 
                 # Wrap in safety delimiters before adding to the prompt.
@@ -186,9 +206,10 @@ async def researcher_node(state: GraphState, angle_index: int = 0) -> dict:
                     retrieved_at=datetime.now(tz=timezone.utc),
                 ))
 
-            except (UnsafeURLError, httpx.HTTPError, Exception):
-                # Skip this URL — unsafe address, network error, or extraction failure.
-                # We have fallback results so a failed fetch doesn't break the run.
+            except Exception:
+                # Skip this URL — unsafe address (UnsafeURLError), network error
+                # (httpx.HTTPError), or extraction failure. We have fallback
+                # results so a failed fetch doesn't break the run.
                 continue
 
     # Fall back to Tavily snippets if all fetches failed
