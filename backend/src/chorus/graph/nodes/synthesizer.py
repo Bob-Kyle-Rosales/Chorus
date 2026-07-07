@@ -37,6 +37,10 @@ multiple researchers and a critic's assessment, then produce a final structured 
 Reconcile contradictions identified by the critic. Highlight contested points where
 researchers disagreed. Assign an overall confidence level based on the quality of evidence.
 
+You will be given a numbered list of sources, and each researcher finding will show
+which numbered sources back it. Cite sources by number in source_indices — never
+invent a source number, never renumber them, never write a URL directly.
+
 Return a JSON object with this exact structure:
 {
   "tl_dr": "2-3 sentence summary of the key findings",
@@ -44,13 +48,15 @@ Return a JSON object with this exact structure:
     {
       "claim": "A specific, important finding",
       "support": "The evidence behind this finding",
-      "confidence": "low" | "medium" | "high"
+      "confidence": "low" | "medium" | "high",
+      "source_indices": [1, 3]
     }
   ],
   "contested_points": [
     {
       "topic": "What the disagreement is about",
-      "positions": ["Position A", "Position B"]
+      "positions": ["Position A", "Position B"],
+      "source_indices": [2, 4]
     }
   ],
   "confidence_overall": "low" | "medium" | "high"
@@ -60,25 +66,43 @@ Rules:
 - tl_dr must be concise — 2-3 sentences maximum
 - Include 3-6 key findings — the most important and well-supported ones
 - Only include contested_points where there is genuine disagreement
+- source_indices must reference the numbered Sources list you were given, and should
+  carry forward the source numbers already attached to the researcher findings a claim
+  is drawn from — every key finding and contested point should cite at least one
+  source wherever the underlying findings had one
 - confidence_overall: "high" if most findings are well-supported, "medium" if mixed,
   "low" if findings are mostly speculative or contradictory
 - Return ONLY the JSON object. No markdown, no explanation."""
 
 
-def _format_context(state: GraphState) -> str:
+def _format_context(state: GraphState, all_citations: list[Citation]) -> str:
     """
-    Formats the full research context — all findings and the critique —
-    into a single text block for the Synthesizer's prompt.
+    Formats the full research context — all findings, the critique, and a
+    numbered source list — into a single text block for the Synthesizer's
+    prompt.
+
+    all_citations must be the same list (same order) that the caller will
+    later use to resolve the model's source_indices back into real Citation
+    objects — the numbers only mean something if both sides agree on them.
+    Each researcher finding is shown with the numbers of its own citations,
+    so the model can carry that attribution forward instead of guessing.
     """
+    url_to_index = {c.url: i + 1 for i, c in enumerate(all_citations)}
+
     lines = [f"Research Question: {state['question']}\n"]
 
-    # All researcher findings
+    # All researcher findings, each tagged with the numbered sources behind it
     lines.append("## Researcher Findings\n")
     for output in state["researcher_outputs"]:
         lines.append(f"### {output.angle_id}")
         for f in output.findings:
-            lines.append(f"- [{f.confidence}] {f.claim}")
+            nums = ", ".join(
+                f"[{url_to_index[c.url]}]" for c in f.citations if c.url in url_to_index
+            )
+            lines.append(f"- [{f.confidence} confidence] {f.claim}" + (f" {nums}" if nums else ""))
             lines.append(f"  Evidence: {f.support[:300]}")
+        if output.open_questions:
+            lines.append(f"Open questions: {'; '.join(output.open_questions)}")
         lines.append("")
 
     # Critic's assessment
@@ -97,6 +121,13 @@ def _format_context(state: GraphState) -> str:
             lines.append("Gaps in coverage:")
             for g in critique.gaps:
                 lines.append(f"  - {g}")
+        lines.append("")
+
+    # Numbered source list — the model cites by these numbers, not by URL,
+    # since reproducing a long URL exactly is unreliable for an LLM.
+    lines.append("## Sources")
+    for i, c in enumerate(all_citations, 1):
+        lines.append(f"[{i}] {c.title or c.url} — {c.url}")
 
     return "\n".join(lines)
 
@@ -133,7 +164,13 @@ async def synthesizer_node(state: GraphState) -> dict:
     Node position in pipeline: LAST — runs after the critic finishes.
     """
 
-    context = _format_context(state)
+    # Collect + number all citations FIRST — the same list, in the same
+    # order, is used both in the prompt (so the model can cite "[3]") and
+    # afterward to resolve the model's cited numbers back into real
+    # Citation objects. It also becomes report.sources, so these numbers
+    # are exactly the ones the frontend's own citation badges use.
+    all_citations = _collect_all_citations(state)
+    context = _format_context(state, all_citations)
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
@@ -149,8 +186,21 @@ async def synthesizer_node(state: GraphState) -> dict:
         raw_content = raw_content.split("\n", 1)[-1]
         raw_content = raw_content.rsplit("```", 1)[0].strip()
 
-    # Collect all citations from all researchers for the report's source list
-    all_citations = _collect_all_citations(state)
+    def _resolve_sources(indices: object) -> list[Citation]:
+        """
+        Maps the model's 1-based source_indices back to real Citation objects.
+        Silently drops anything out of range or the wrong type — the model
+        occasionally hallucinates an index or returns something malformed,
+        and a citation is worth dropping quietly rather than failing the
+        whole report over.
+        """
+        if not isinstance(indices, list):
+            return []
+        return [
+            all_citations[i - 1]
+            for i in indices
+            if isinstance(i, int) and 1 <= i <= len(all_citations)
+        ]
 
     try:
         data = json.loads(raw_content)
@@ -160,7 +210,7 @@ async def synthesizer_node(state: GraphState) -> dict:
             Finding(
                 claim=f["claim"],
                 support=f["support"],
-                citations=[],   # key findings reference the full sources list
+                citations=_resolve_sources(f.get("source_indices")),
                 confidence=f.get("confidence", "medium"),
             )
             for f in data.get("key_findings", [])
@@ -171,7 +221,7 @@ async def synthesizer_node(state: GraphState) -> dict:
             ContestedPoint(
                 topic=cp["topic"],
                 positions=cp["positions"],
-                sources=[],   # contested points reference the full sources list
+                sources=_resolve_sources(cp.get("source_indices")),
             )
             for cp in data.get("contested_points", [])
         ]
