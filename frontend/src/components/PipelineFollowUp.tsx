@@ -2,6 +2,7 @@
 
 import { ReportView } from "@/components/ReportView"
 import { AgentCard } from "@/components/AgentCard"
+import { CritiqueView } from "@/components/CritiqueView"
 import type { PipelineMessage } from "@/types/events"
 
 export function PipelineFollowUp({ message }: { message: PipelineMessage }) {
@@ -16,13 +17,13 @@ export function PipelineFollowUp({ message }: { message: PipelineMessage }) {
         </div>
       )}
 
+      {/* Critique — surfaced explicitly, not folded into the report's prose */}
+      {message.critique && <CritiqueView critique={message.critique} />}
+
       {/* Error */}
       {message.status === "error" && (
-        <div
-          className="rounded p-4 text-sm text-red-400"
-          style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.2)" }}
-        >
-          Research failed. Please try again.
+        <div className="rounded border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          {message.errorMessage ?? "Research failed. Please try again."}
         </div>
       )}
 
@@ -37,7 +38,7 @@ export function PipelineFollowUp({ message }: { message: PipelineMessage }) {
         >
           <p
             className="mb-6 font-mono text-[10px] tracking-widest uppercase"
-            style={{ color: "var(--chorus-border)" }}
+            style={{ color: "var(--chorus-muted)" }}
           >
             Follow-up research
           </p>

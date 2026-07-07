@@ -12,6 +12,7 @@ export default function SignInPage() {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -114,33 +115,37 @@ export default function SignInPage() {
               >
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded px-4 py-2.5 text-sm transition-colors outline-none"
-                style={{
-                  background: "var(--chorus-bg)",
-                  border: "1px solid var(--chorus-border)",
-                  color: "var(--chorus-text)",
-                }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--chorus-gold)")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--chorus-border)")}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded px-4 py-2.5 pr-14 text-sm transition-colors outline-none"
+                  style={{
+                    background: "var(--chorus-bg)",
+                    border: "1px solid var(--chorus-border)",
+                    color: "var(--chorus-text)",
+                  }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "var(--chorus-gold)")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--chorus-border)")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-xs transition-opacity hover:opacity-80"
+                  style={{ color: "var(--chorus-muted)" }}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
 
             {error && (
-              <p
-                className="rounded px-4 py-3 text-sm text-red-400"
-                style={{
-                  background: "rgba(239,68,68,0.08)",
-                  border: "1px solid rgba(239,68,68,0.2)",
-                }}
-              >
+              <p className="rounded border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {error}
               </p>
             )}
@@ -159,7 +164,7 @@ export default function SignInPage() {
             No account?{" "}
             <Link
               href="/auth/signup"
-              className="transition-colors"
+              className="transition-opacity hover:opacity-80"
               style={{ color: "var(--chorus-gold)" }}
             >
               Create one

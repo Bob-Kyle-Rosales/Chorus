@@ -4,6 +4,8 @@
 // Shows the cost and the user's remaining balance.
 // If credits < 5 the confirm button is disabled and an explanation is shown.
 
+import { useDialogA11y } from "@/lib/useDialogA11y"
+
 interface CreditWarningProps {
   creditsRemaining: number
   onConfirm: () => void
@@ -12,6 +14,7 @@ interface CreditWarningProps {
 
 export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditWarningProps) {
   const canAfford = creditsRemaining >= 5
+  const panelRef = useDialogA11y<HTMLDivElement>(onCancel)
 
   return (
     /* Backdrop */
@@ -22,7 +25,12 @@ export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditW
     >
       {/* Panel — stop propagation so clicks inside don't close */}
       <div
-        className="w-full max-w-sm space-y-5 p-6"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="credit-warning-title"
+        tabIndex={-1}
+        className="w-full max-w-sm space-y-5 p-6 outline-none"
         style={{
           background: "var(--chorus-surface)",
           border: "1px solid var(--chorus-border)",
@@ -33,6 +41,7 @@ export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditW
       >
         <div className="space-y-1">
           <p
+            id="credit-warning-title"
             className="text-sm font-semibold"
             style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
           >
@@ -67,8 +76,8 @@ export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditW
           >
             <span className="text-xs" style={{ color: "var(--chorus-muted)" }}>Your balance</span>
             <span
-              className="font-mono text-xs"
-              style={{ color: canAfford ? "var(--chorus-gold)" : "#f87171" }}
+              className={`font-mono text-xs ${canAfford ? "" : "text-destructive"}`}
+              style={canAfford ? { color: "var(--chorus-gold)" } : undefined}
             >
               {creditsRemaining} ◉
             </span>
@@ -77,7 +86,7 @@ export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditW
 
         {/* Insufficient credits warning */}
         {!canAfford && (
-          <p className="text-xs leading-relaxed" style={{ color: "#f87171" }}>
+          <p className="text-xs leading-relaxed text-destructive">
             Insufficient credits. Your balance resets daily at midnight UTC.
           </p>
         )}
@@ -86,7 +95,7 @@ export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditW
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-2.5 text-sm transition-colors"
+            className="flex-1 py-2.5 text-sm transition-opacity hover:opacity-80"
             style={{
               border: "1px solid var(--chorus-border)",
               borderRadius: "4px",
@@ -99,7 +108,7 @@ export function CreditWarning({ creditsRemaining, onConfirm, onCancel }: CreditW
           <button
             onClick={onConfirm}
             disabled={!canAfford}
-            className="flex-1 py-2.5 text-sm font-semibold transition-colors disabled:opacity-40"
+            className="flex-1 py-2.5 text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
             style={{
               background: "var(--chorus-gold)",
               color: "var(--chorus-bg)",

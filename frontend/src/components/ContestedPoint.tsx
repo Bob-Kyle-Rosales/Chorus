@@ -1,18 +1,25 @@
 "use client"
 
 import { motion } from "framer-motion"
+import type { Citation } from "@/types/events"
 
-// positions: string[] per the Report type in @/types/events
-// (no exported ContestedPoint type exists; using inline interface)
+// shape matches Report.contested_points[] in @/types/events
+// (no standalone exported type for a single contested point; using inline interface)
 interface ContestedPointProps {
   point: {
     topic: string
     positions: string[]
+    sources: Citation[]
   }
   index: number
+  allSources: Citation[]
 }
 
-export function ContestedPoint({ point, index }: ContestedPointProps) {
+export function ContestedPoint({ point, index, allSources }: ContestedPointProps) {
+  const sourceIndex = new Map(allSources.map((s, i) => [s.url, i + 1]))
+  const refNumbers = point.sources
+    .map((c) => sourceIndex.get(c.url))
+    .filter((n): n is number => n !== undefined)
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -27,7 +34,7 @@ export function ContestedPoint({ point, index }: ContestedPointProps) {
     >
       <div className="flex items-center gap-2">
         <span
-          className="rounded px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider"
+          className="rounded px-2 py-0.5 font-mono text-xs uppercase tracking-wider"
           style={{
             background: "rgba(201,162,74,0.1)",
             color: "var(--chorus-gold)",
@@ -48,12 +55,32 @@ export function ContestedPoint({ point, index }: ContestedPointProps) {
             className="rounded p-3 space-y-2"
             style={{ background: "var(--chorus-bg)", border: "1px solid var(--chorus-border)" }}
           >
-            <p className="text-xs leading-relaxed" style={{ color: "var(--chorus-muted)" }}>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--chorus-muted)" }}>
               {pos}
             </p>
           </div>
         ))}
       </div>
+
+      {refNumbers.length > 0 && (
+        <div
+          className="flex flex-wrap gap-1.5 pt-1"
+          style={{ borderTop: "1px solid var(--chorus-border)" }}
+        >
+          <span className="font-mono text-xs" style={{ color: "var(--chorus-muted)" }}>
+            Sources:
+          </span>
+          {refNumbers.map((n) => (
+            <span
+              key={n}
+              className="rounded border px-1.5 py-0.5 font-mono text-xs"
+              style={{ borderColor: "var(--chorus-border)", color: "var(--chorus-muted)" }}
+            >
+              [{n}]
+            </span>
+          ))}
+        </div>
+      )}
     </motion.div>
   )
 }

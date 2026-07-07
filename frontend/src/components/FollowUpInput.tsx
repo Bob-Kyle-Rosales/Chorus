@@ -49,7 +49,7 @@ export function FollowUpInput({
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) handleSubmit()
           }}
-          disabled={isLocked}
+          disabled={isLocked || !hasCredits}
           placeholder={placeholder}
           className="flex-1 rounded px-4 py-2.5 text-sm outline-none transition-opacity disabled:opacity-40"
           style={{

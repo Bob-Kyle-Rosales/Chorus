@@ -77,6 +77,8 @@ interface SessionStore {
   addUserMessage: (sessionId: string, id: string, text: string) => void
   addReasoningMessage: (sessionId: string, id: string, question: string, answer: string) => void
   addPipelineFollowUp: (sessionId: string, id: string, question: string, runId: string) => void
+  addErrorMessage: (sessionId: string, id: string, text: string) => void
+  removeConversationMessage: (sessionId: string, id: string) => void
   setFollowUpStatus: (sessionId: string, s: FollowUpStatus) => void
 
   // ── Connection management ─────────────────────────────────────────────
@@ -152,8 +154,10 @@ export const useSessionStore = create<SessionStore>((set) => ({
           question: "",
           runId: "",
           agents: {},
+          critique: null,
           report: m.report,
           status: "complete",
+          errorMessage: null,
           timestamp: m.created_at,
         }
       },
@@ -255,12 +259,16 @@ export const useSessionStore = create<SessionStore>((set) => ({
             status: "finished",
           }
           break
+        case "critique.ready":
+          updated.critique = event.critique
+          break
         case "report.ready":
           updated.report = event.report
           updated.status = "complete"
           break
         case "run.error":
           updated.status = "error"
+          updated.errorMessage = event.message
           break
       }
 
@@ -296,8 +304,10 @@ export const useSessionStore = create<SessionStore>((set) => ({
       question,
       runId,
       agents: {},
+      critique: null,
       report: null,
       status: "running",
+      errorMessage: null,
       timestamp: new Date().toISOString(),
     }
     set((s) => ({
@@ -306,6 +316,20 @@ export const useSessionStore = create<SessionStore>((set) => ({
       })),
     }))
   },
+
+  addErrorMessage: (sessionId, id, text) =>
+    set((s) => ({
+      runStates: patchRunState(s.runStates, sessionId, (cur) => ({
+        conversation: [...cur.conversation, { type: "error", id, text, timestamp: new Date().toISOString() }],
+      })),
+    })),
+
+  removeConversationMessage: (sessionId, id) =>
+    set((s) => ({
+      runStates: patchRunState(s.runStates, sessionId, (cur) => ({
+        conversation: cur.conversation.filter((m) => m.id !== id),
+      })),
+    })),
 
   setFollowUpStatus: (sessionId, followUpStatus) =>
     set((s) => ({

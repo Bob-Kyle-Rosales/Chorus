@@ -7,6 +7,8 @@
 //   activeCount === 1  → warn + offer to proceed (costs 5 more ◉)
 //   activeCount >= 2   → hard block (max 2 concurrent runs)
 
+import { useDialogA11y } from "@/lib/useDialogA11y"
+
 interface ConcurrentRunWarningProps {
   activeCount: number
   onConfirm: () => void // only enabled when activeCount === 1
@@ -19,6 +21,7 @@ export function ConcurrentRunWarning({
   onCancel,
 }: ConcurrentRunWarningProps) {
   const isBlocked = activeCount >= 2
+  const panelRef = useDialogA11y<HTMLDivElement>(onCancel)
 
   return (
     <div
@@ -27,7 +30,12 @@ export function ConcurrentRunWarning({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm space-y-4 p-6"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="concurrent-run-warning-title"
+        tabIndex={-1}
+        className="w-full max-w-sm space-y-4 p-6 outline-none"
         style={{
           background: "var(--chorus-surface)",
           border: "1px solid var(--chorus-border)",
@@ -38,6 +46,7 @@ export function ConcurrentRunWarning({
       >
         <div className="space-y-1">
           <p
+            id="concurrent-run-warning-title"
             className="text-sm font-semibold"
             style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
           >
@@ -67,7 +76,7 @@ export function ConcurrentRunWarning({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-2.5 text-sm transition-colors"
+            className="flex-1 py-2.5 text-sm transition-opacity hover:opacity-80"
             style={{
               border: "1px solid var(--chorus-border)",
               borderRadius: "4px",
@@ -80,7 +89,7 @@ export function ConcurrentRunWarning({
           {!isBlocked && (
             <button
               onClick={onConfirm}
-              className="flex-1 py-2.5 text-sm font-semibold transition-colors"
+              className="flex-1 py-2.5 text-sm font-semibold transition-opacity hover:opacity-80"
               style={{
                 background: "var(--chorus-gold)",
                 color: "var(--chorus-bg)",

@@ -2,16 +2,19 @@
 
 import { useEffect, useRef } from "react"
 import { AgentCard } from "@/components/AgentCard"
+import { CritiqueView } from "@/components/CritiqueView"
 import { ReportView } from "@/components/ReportView"
 import { ReasoningResponse } from "@/components/ReasoningResponse"
 import { PipelineFollowUp } from "@/components/PipelineFollowUp"
-import type { AgentState, ConversationMessage, Report } from "@/types/events"
+import type { AgentState, ConversationMessage, Critique, Report } from "@/types/events"
 
 interface ConversationThreadProps {
   question: string
   runStatus: "idle" | "running" | "complete" | "error"
   agents: Record<string, AgentState>
+  critique: Critique | null
   report: Report | null
+  errorMessage: string | null
   conversation: ConversationMessage[]
 }
 
@@ -19,16 +22,18 @@ export function ConversationThread({
   question,
   runStatus,
   agents,
+  critique,
   report,
+  errorMessage,
   conversation,
 }: ConversationThreadProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
+  const agentList = Object.values(agents)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [conversation.length])
-
-  const agentList = Object.values(agents)
+    // agentList/report/critique aren't part of `conversation` — the first run needs them too.
+  }, [conversation.length, agentList.length, report, critique])
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -39,7 +44,7 @@ export function ConversationThread({
           <header>
             <p
               className="mb-1 font-mono text-xs tracking-widest uppercase"
-              style={{ color: "var(--chorus-border)" }}
+              style={{ color: "var(--chorus-muted)" }}
             >
               Chorus
             </p>
@@ -56,7 +61,7 @@ export function ConversationThread({
             <section className="space-y-3">
               <p
                 className="font-mono text-xs tracking-widest uppercase"
-                style={{ color: "var(--chorus-border)" }}
+                style={{ color: "var(--chorus-muted)" }}
               >
                 Agents
               </p>
@@ -65,6 +70,16 @@ export function ConversationThread({
                   <AgentCard key={agent.agent_id} agent={agent} />
                 ))}
               </div>
+            </section>
+          )}
+
+          {/* Critique — surfaced explicitly, not folded into the report's prose */}
+          {critique && (
+            <section
+              className="pt-8"
+              style={{ borderTop: "1px solid var(--chorus-border)" }}
+            >
+              <CritiqueView critique={critique} />
             </section>
           )}
 
@@ -80,11 +95,8 @@ export function ConversationThread({
 
           {/* Error */}
           {runStatus === "error" && (
-            <div
-              className="rounded p-5 text-center text-sm text-red-400"
-              style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.2)" }}
-            >
-              Research failed. Please start a new session.
+            <div className="rounded border border-destructive/30 bg-destructive/10 p-5 text-center text-sm text-destructive">
+              {errorMessage ?? "Research failed. Please start a new session."}
             </div>
           )}
         </div>
@@ -109,6 +121,11 @@ export function ConversationThread({
             )}
             {msg.type === "reasoning" && <ReasoningResponse message={msg} />}
             {msg.type === "pipeline" && <PipelineFollowUp message={msg} />}
+            {msg.type === "error" && (
+              <div className="rounded border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {msg.text}
+              </div>
+            )}
           </div>
         ))}
 

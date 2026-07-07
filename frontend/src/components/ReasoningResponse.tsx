@@ -13,8 +13,8 @@ export function ReasoningResponse({ message }: { message: ReasoningMessage }) {
       className="space-y-2"
     >
       <p
-        className="font-mono text-[10px] tracking-widest uppercase"
-        style={{ color: "var(--chorus-border)" }}
+        className="font-mono text-xs tracking-widest uppercase"
+        style={{ color: "var(--chorus-muted)" }}
       >
         Chorus
       </p>

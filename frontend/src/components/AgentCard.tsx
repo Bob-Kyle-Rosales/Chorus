@@ -1,30 +1,19 @@
 "use client"
 
+import { useEffect, useRef } from "react"
 import { motion } from "framer-motion"
+import { AGENT_ACCENT, AGENT_LABEL } from "@/lib/agentDisplay"
 import type { AgentState } from "@/types/events"
-
-// Per-agent color identity matches the angle preview colors
-const AGENT_ACCENT: Record<string, string> = {
-  researcher_0: "var(--chorus-blue)",
-  researcher_1: "var(--chorus-green)",
-  researcher_2: "var(--chorus-pink)",
-  critic: "var(--chorus-gold)",
-  synthesizer: "var(--chorus-gold)",
-  planner: "var(--chorus-muted)",
-}
-
-const AGENT_LABEL: Record<string, string> = {
-  researcher_0: "Researcher I",
-  researcher_1: "Researcher II",
-  researcher_2: "Researcher III",
-  critic: "Critic",
-  synthesizer: "Synthesizer",
-  planner: "Planner",
-}
 
 export function AgentCard({ agent }: { agent: AgentState }) {
   const accent = AGENT_ACCENT[agent.agent_id] ?? "var(--chorus-muted)"
   const label = AGENT_LABEL[agent.agent_id] ?? agent.agent_id
+  const streamRef = useRef<HTMLPreElement>(null)
+
+  useEffect(() => {
+    const el = streamRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [agent.tokens])
 
   return (
     <motion.div
@@ -55,7 +44,7 @@ export function AgentCard({ agent }: { agent: AgentState }) {
             style={{ background: accent }}
           />
         ) : (
-          <span className="font-mono text-[10px]" style={{ color: "var(--chorus-border)" }}>
+          <span className="font-mono text-xs" style={{ color: "var(--chorus-muted)" }}>
             ✓
           </span>
         )}
@@ -64,7 +53,8 @@ export function AgentCard({ agent }: { agent: AgentState }) {
       {/* Token stream */}
       <div className="flex-1 px-4 py-3">
         <pre
-          className="max-h-36 overflow-y-auto font-mono text-xs leading-relaxed whitespace-pre-wrap"
+          ref={streamRef}
+          className="max-h-36 overflow-y-auto font-mono text-sm leading-relaxed whitespace-pre-wrap"
           style={{ color: "var(--chorus-muted)" }}
         >
           {agent.tokens || (agent.status === "finished" ? "Done." : "Waiting…")}

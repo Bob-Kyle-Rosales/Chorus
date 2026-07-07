@@ -72,7 +72,7 @@ export default function ResearchLayout({ children }: { children: React.ReactNode
   if (checking) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--chorus-bg)" }}>
-        <div className="animate-pulse font-mono text-xs" style={{ color: "var(--chorus-border)" }}>
+        <div className="animate-pulse font-mono text-xs" style={{ color: "var(--chorus-muted)" }}>
           Loading…
         </div>
       </div>

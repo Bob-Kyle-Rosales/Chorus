@@ -32,7 +32,7 @@ export function AnglePreview({ question, angles, onBack, onConfirm, loading }: A
       <div>
         <p
           className="mb-1 font-mono text-xs tracking-widest uppercase"
-          style={{ color: "var(--chorus-border)" }}
+          style={{ color: "var(--chorus-muted)" }}
         >
           Your question
         </p>
@@ -48,7 +48,7 @@ export function AnglePreview({ question, angles, onBack, onConfirm, loading }: A
       <div className="space-y-3">
         <p
           className="font-mono text-xs tracking-widest uppercase"
-          style={{ color: "var(--chorus-border)" }}
+          style={{ color: "var(--chorus-muted)" }}
         >
           Research plan
         </p>
@@ -69,7 +69,7 @@ export function AnglePreview({ question, angles, onBack, onConfirm, loading }: A
             >
               {/* Researcher label badge */}
               <span
-                className="mt-0.5 shrink-0 rounded px-2 py-0.5 font-mono text-[10px] font-medium"
+                className="mt-0.5 shrink-0 rounded px-2 py-0.5 font-mono text-xs font-medium"
                 style={{
                   color: accent.var,
                   background: `${accent.hex}18`,
@@ -81,7 +81,7 @@ export function AnglePreview({ question, angles, onBack, onConfirm, loading }: A
 
               <div className="min-w-0 space-y-1">
                 <p
-                  className="text-xs font-medium uppercase tracking-wide"
+                  className="text-sm font-medium uppercase tracking-wide"
                   style={{ color: "var(--chorus-muted)" }}
                 >
                   {angle.angle_id.replace(/_/g, " ")}

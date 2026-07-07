@@ -15,8 +15,13 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  const passwordTooShort = password.length > 0 && password.length < 8
+  const confirmMismatch = confirm.length > 0 && password !== confirm
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -189,19 +194,32 @@ export default function SignUpPage() {
               >
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full rounded px-4 py-2.5 text-sm outline-none"
-                style={inputStyle}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full rounded px-4 py-2.5 pr-14 text-sm outline-none"
+                  style={inputStyle}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-xs transition-opacity hover:opacity-80"
+                  style={{ color: "var(--chorus-muted)" }}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+              {passwordTooShort && (
+                <p className="text-xs text-destructive">At least 8 characters</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -212,29 +230,36 @@ export default function SignUpPage() {
               >
                 Confirm password
               </label>
-              <input
-                id="confirm"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Confirm Password"
-                className="w-full rounded px-4 py-2.5 text-sm outline-none"
-                style={inputStyle}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-              />
+              <div className="relative">
+                <input
+                  id="confirm"
+                  type={showConfirm ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="Confirm Password"
+                  className="w-full rounded px-4 py-2.5 pr-14 text-sm outline-none"
+                  style={inputStyle}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-xs transition-opacity hover:opacity-80"
+                  style={{ color: "var(--chorus-muted)" }}
+                >
+                  {showConfirm ? "Hide" : "Show"}
+                </button>
+              </div>
+              {confirmMismatch && (
+                <p className="text-xs text-destructive">Passwords don&apos;t match</p>
+              )}
             </div>
 
             {error && (
-              <p
-                className="rounded px-4 py-3 text-sm text-red-400"
-                style={{
-                  background: "rgba(239,68,68,0.08)",
-                  border: "1px solid rgba(239,68,68,0.2)",
-                }}
-              >
+              <p className="rounded border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {error}
               </p>
             )}
@@ -253,7 +278,7 @@ export default function SignUpPage() {
             Already have an account?{" "}
             <Link
               href="/auth/signin"
-              className="transition-colors"
+              className="transition-opacity hover:opacity-80"
               style={{ color: "var(--chorus-gold)" }}
             >
               Sign in

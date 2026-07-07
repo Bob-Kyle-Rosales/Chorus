@@ -12,11 +12,11 @@ interface CreditCounterProps {
 }
 
 export function CreditCounter({ credits, showLabel = false }: CreditCounterProps) {
-  const colour = credits === 0 ? "text-red-400" : credits <= 5 ? "text-amber-400" : "text-white/50"
+  const colour = credits === 0 ? "text-destructive" : credits <= 5 ? "text-amber-400" : "text-white/50"
 
   return (
     <div className="flex items-center justify-between">
-      {showLabel && <span className="text-[11px] text-white/30">Credits today</span>}
+      {showLabel && <span className="text-[11px] text-chorus-muted">Credits today</span>}
       <span className={`font-mono text-[11px] tabular-nums ${colour}`}>{credits} ◉</span>
     </div>
   )

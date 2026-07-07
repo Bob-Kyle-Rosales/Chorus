@@ -54,14 +54,14 @@ export default function LandingPage() {
         <div className="flex items-center gap-4">
           <Link
             href="/auth/signin"
-            className="text-sm transition-colors"
+            className="text-sm transition-opacity hover:opacity-70"
             style={{ color: "var(--chorus-muted)" }}
           >
             Sign in
           </Link>
           <Link
             href="/auth/signup"
-            className="rounded px-4 py-1.5 text-sm font-medium transition-colors"
+            className="rounded px-4 py-1.5 text-sm font-medium transition-opacity hover:opacity-80"
             style={{
               background: "var(--chorus-gold)",
               color: "var(--chorus-bg)",
@@ -97,14 +97,14 @@ export default function LandingPage() {
           <div className="flex items-center justify-center gap-4 pt-2">
             <Link
               href="/auth/signup"
-              className="rounded px-7 py-3 text-sm font-medium transition-colors"
+              className="rounded px-7 py-3 text-sm font-medium transition-opacity hover:opacity-80"
               style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
             >
               Start researching
             </Link>
             <Link
               href="/auth/signin"
-              className="rounded border px-7 py-3 text-sm transition-colors"
+              className="rounded border px-7 py-3 text-sm transition-opacity hover:opacity-70"
               style={{ borderColor: "var(--chorus-border)", color: "var(--chorus-muted)" }}
             >
               Sign in
@@ -219,7 +219,7 @@ export default function LandingPage() {
         className="px-8 py-8 text-center"
         style={{ borderTop: "1px solid var(--chorus-border)" }}
       >
-        <p className="font-mono text-xs" style={{ color: "var(--chorus-border)" }}>
+        <p className="font-mono text-xs" style={{ color: "var(--chorus-muted)" }}>
           Chorus · Multi-agent AI research · LangGraph · Groq · Next.js
         </p>
       </footer>
@@ -293,7 +293,7 @@ function ArchitectureDiagram() {
         {/* ── Planner box ── */}
         <rect x={plannerX} y={plannerY} width={plannerW} height={plannerH} rx={3} fill={surface} stroke={gold} strokeWidth={1.5} />
         <text x={plannerCX} y={plannerY + 15} textAnchor="middle" fontSize={10} fontFamily="monospace" fill={muted} letterSpacing={1}>PLANNER</text>
-        <text x={plannerCX} y={plannerY + 29} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={border}>Llama 3.1 8B</text>
+        <text x={plannerCX} y={plannerY + 29} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={muted}>Llama 3.1 8B</text>
 
         {/* Planner → fan-out horizontal */}
         <line x1={plannerCX} y1={plannerBottom} x2={plannerCX} y2={fanOutY} {...lineProps} />
@@ -320,7 +320,7 @@ function ArchitectureDiagram() {
               <text x={cx} y={resY + 15} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={colors[i].stroke} letterSpacing={0.5}>
                 {colors[i].label}
               </text>
-              <text x={cx} y={resY + 29} textAnchor="middle" fontSize={8} fontFamily="monospace" fill={border}>
+              <text x={cx} y={resY + 29} textAnchor="middle" fontSize={8} fontFamily="monospace" fill={muted}>
                 70B · Tavily
               </text>
             </g>
@@ -343,7 +343,7 @@ function ArchitectureDiagram() {
         {/* ── Critic box ── */}
         <rect x={criticX} y={criticY} width={criticW} height={criticH} rx={3} fill={surface} stroke={gold} strokeWidth={1.5} />
         <text x={criticCX} y={criticY + 15} textAnchor="middle" fontSize={10} fontFamily="monospace" fill={muted} letterSpacing={1}>CRITIC</text>
-        <text x={criticCX} y={criticY + 29} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={border}>Llama 3.3 70B</text>
+        <text x={criticCX} y={criticY + 29} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={muted}>Llama 3.3 70B</text>
 
         {/* Critic → Synthesizer */}
         <line x1={criticCX} y1={criticBottom} x2={synthCX} y2={synthTop} {...lineProps} />
@@ -352,7 +352,7 @@ function ArchitectureDiagram() {
         {/* ── Synthesizer box ── */}
         <rect x={synthX} y={synthY} width={synthW} height={synthH} rx={3} fill={surface} stroke={gold} strokeWidth={1.5} />
         <text x={synthCX} y={synthY + 15} textAnchor="middle" fontSize={10} fontFamily="monospace" fill={muted} letterSpacing={1}>SYNTHESIZER</text>
-        <text x={synthCX} y={synthY + 29} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={border}>Llama 3.3 70B</text>
+        <text x={synthCX} y={synthY + 29} textAnchor="middle" fontSize={9} fontFamily="monospace" fill={muted}>Llama 3.3 70B</text>
 
         {/* Synthesizer → Report */}
         <line x1={synthCX} y1={synthY + synthH} x2={synthCX} y2={H - 24} {...lineProps} />

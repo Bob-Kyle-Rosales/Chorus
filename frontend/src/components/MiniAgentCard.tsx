@@ -1,24 +1,7 @@
 "use client"
 
+import { AGENT_ACCENT, AGENT_LABEL } from "@/lib/agentDisplay"
 import type { AgentState } from "@/types/events"
-
-const AGENT_ACCENT: Record<string, string> = {
-  researcher_0: "var(--chorus-blue)",
-  researcher_1: "var(--chorus-green)",
-  researcher_2: "var(--chorus-pink)",
-  critic: "var(--chorus-gold)",
-  synthesizer: "var(--chorus-gold)",
-  planner: "var(--chorus-muted)",
-}
-
-const AGENT_LABEL: Record<string, string> = {
-  researcher_0: "Researcher I",
-  researcher_1: "Researcher II",
-  researcher_2: "Researcher III",
-  critic: "Critic",
-  synthesizer: "Synthesizer",
-  planner: "Planner",
-}
 
 export function MiniAgentCard({ agent }: { agent: AgentState }) {
   const accent = AGENT_ACCENT[agent.agent_id] ?? "var(--chorus-muted)"

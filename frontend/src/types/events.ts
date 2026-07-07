@@ -105,12 +105,24 @@ export interface PipelineMessage {
   question: string
   runId: string
   agents: Record<string, AgentState>
+  critique: Critique | null
   report: Report | null
   status: "running" | "complete" | "error"
+  errorMessage: string | null
   timestamp: string
 }
 
-export type ConversationMessage = UserMessage | ReasoningMessage | PipelineMessage
+// A follow-up attempt that failed before Chorus could answer (network error,
+// insufficient credits, etc.) — shown inline so the question never just goes
+// quiet. Not persisted: it describes a failed attempt, not a conversation turn.
+export interface ErrorMessage {
+  type: "error"
+  id: string
+  text: string
+  timestamp: string
+}
+
+export type ConversationMessage = UserMessage | ReasoningMessage | PipelineMessage | ErrorMessage
 
 // ---------------------------------------------------------------------------
 // WebSocket events
