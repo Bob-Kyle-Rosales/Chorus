@@ -1,4 +1,3 @@
-# main.py
 # The entry point for the Chorus FastAPI application.
 #
 # This file does three things:

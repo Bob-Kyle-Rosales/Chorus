@@ -1,5 +1,4 @@
-# api/credits.py
-# Credit ledger endpoints — backed by the credits_ledger table (db/models.py).
+# Credit ledger endpoints — backed by the credits_ledger table.
 #
 # Credits are a daily allowance that throttles expensive pipeline runs.
 # One row per user per UTC day; the row's `used` counter accumulates spend.

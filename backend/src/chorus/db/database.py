@@ -1,4 +1,3 @@
-# db/database.py
 # SQLAlchemy 2.0 async engine, session factory, and FastAPI dependency.
 #
 # The engine is created once from settings.database_url and shared across the app.
@@ -27,9 +26,25 @@ class Base(DeclarativeBase):
     pass
 
 
+def _normalize_database_url(url: str) -> str:
+    """
+    Managed Postgres providers (Render, Railway, Heroku, Supabase, ...) hand
+    out a plain postgres:// or postgresql:// connection string — the async
+    engine needs the asyncpg dialect named explicitly, or SQLAlchemy falls
+    back to a sync driver and create_async_engine raises. Rewrites the
+    scheme only when it's missing a driver; an already-explicit URL
+    (sqlite+aiosqlite://, postgresql+asyncpg://, ...) passes through unchanged.
+    """
+    if url.startswith("postgres://"):
+        return "postgresql+asyncpg://" + url[len("postgres://"):]
+    if url.startswith("postgresql://"):
+        return "postgresql+asyncpg://" + url[len("postgresql://"):]
+    return url
+
+
 # create_async_engine builds the connection pool.
 # echo=False keeps SQL out of the logs; flip to True to debug queries.
-engine = create_async_engine(settings.database_url, echo=False, future=True)
+engine = create_async_engine(_normalize_database_url(settings.database_url), echo=False, future=True)
 
 # Session factory. expire_on_commit=False lets us keep using ORM objects
 # after commit (e.g. reading model fields in the response) without a re-fetch.

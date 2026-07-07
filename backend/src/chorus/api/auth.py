@@ -1,4 +1,3 @@
-# api/auth.py
 # Authentication endpoints.
 #
 #   POST /auth/register  — create account, receive tokens

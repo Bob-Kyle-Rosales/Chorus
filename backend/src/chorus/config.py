@@ -1,4 +1,3 @@
-# config.py
 # Centralizes all configuration for the Chorus backend.
 #
 # pydantic-settings reads values from environment variables and .env files
