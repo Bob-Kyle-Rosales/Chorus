@@ -42,6 +42,10 @@ TAVILY_API_KEY=your_tavily_key
 JWT_SECRET=dev-secret-change-in-production
 ALLOWED_ORIGINS=["http://localhost:3000"]
 
+# Set to true once this is served over HTTPS — the server logs a warning on
+# every boot until both this and JWT_SECRET are set to real values.
+COOKIE_SECURE=false
+
 # Optional — defaults to a local SQLite file if omitted
 DATABASE_URL=sqlite+aiosqlite:///./chorus.db
 ```

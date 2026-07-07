@@ -43,8 +43,14 @@ class Settings(BaseSettings):
     # Security & CORS
     # allowed_origins controls which frontend URLs are allowed to connect.
     # In production this should be your deployed frontend URL.
+    #
+    # cookie_secure controls the Secure attribute on the refresh-token cookie.
+    # False (the default) lets local dev work over plain http://localhost.
+    # Set COOKIE_SECURE=true once the app is served over HTTPS — otherwise
+    # the refresh token is sent in the clear over any plain-HTTP connection.
     # ------------------------------------------------------------------
     allowed_origins: list[str] = ["http://localhost:3000"]
+    cookie_secure: bool = False
 
     # ------------------------------------------------------------------
     # Concurrency controls (see SECURITY.md T4)

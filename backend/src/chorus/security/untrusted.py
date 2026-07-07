@@ -20,7 +20,25 @@
 # This doesn't eliminate injection completely — a sophisticated attack
 # could still work — but it defeats casual injection attempts reliably.
 #
+# One specific bypass this module used to be open to: a page whose own text
+# contains the literal closing tag "</untrusted_web_content>" could close the
+# wrapper early, making anything the attacker put right after it look (to the
+# model) like it's back outside the "treat as data" boundary. _neutralize_tags
+# strips any literal occurrence of either tag out of the content itself before
+# it's embedded, so the real delimiters — the ones this function adds — are
+# the only ones that can ever appear.
+#
 # See: SECURITY.md T1
+
+import re
+
+_TAG_RE = re.compile(r"</?untrusted_web_content>", re.IGNORECASE)
+
+
+def _neutralize_tags(text: str) -> str:
+    """Removes any literal occurrence of our own wrapper tags from untrusted text."""
+    return _TAG_RE.sub("[tag removed]", text)
+
 
 def wrap_untrusted(source_url: str, content: str, limit: int = 8000) -> str:
     """
@@ -74,7 +92,7 @@ def wrap_untrusted(source_url: str, content: str, limit: int = 8000) -> str:
     # Clip to the character limit before wrapping.
     # content[:8000] returns the first 8000 characters of the string.
     # If the content is shorter than 8000 characters, it returns the whole string.
-    clipped = content[:limit]
+    clipped = _neutralize_tags(content[:limit])
 
     # Build the wrapped string.
     # The XML-style tags (<untrusted_web_content>) act as clear delimiters

@@ -15,6 +15,7 @@
 #   POST  /sessions/{id}/messages  — append a conversation message (frontend-driven)
 #   POST  /sessions/{id}/followup  — route + answer a follow-up question
 
+import time
 import uuid
 from chorus.db.models import _utcnow as _db_utcnow
 
@@ -42,16 +43,37 @@ from chorus.schemas import (
     StoreReportRequest,
 )
 from chorus.services.followup_router import route_followup
+from chorus.services.rate_limit import check_and_record
+from chorus.services.run_registry import authorize as authorize_run
 from chorus.api.credits import spend as spend_credits
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
+# Credit cost of a full pipeline run — shared between the charge (spend_credits)
+# and the run authorization (authorize_run) so the two can't drift apart, since
+# authorize_run's amount is also what gets refunded if the run never completes.
+PIPELINE_RUN_COST = 5
+
 # ---------------------------------------------------------------------------
 # In-memory preview store (transient — intentionally NOT persisted).
 # A preview only needs to live between "Plan research" and "Start research".
-# preview_id → { "question": str, "angles": list[AnglePlan], "user_id": str }
+# preview_id → { "question": str, "angles": list[AnglePlan], "user_id": str,
+#                "expires_at": float }
+#
+# expires_at bounds how long an unconfirmed preview can sit here — without
+# it, a preview the user never turns into a session (closed the tab, changed
+# their mind) stays in memory until the process restarts. Pruned lazily
+# whenever a new preview is created.
 # ---------------------------------------------------------------------------
 _previews: dict[str, dict] = {}
+_PREVIEW_TTL_SECONDS = 1800  # 30 minutes — plenty of time to review angles and confirm
+
+
+def _prune_expired_previews() -> None:
+    now = time.monotonic()
+    expired = [pid for pid, p in _previews.items() if p["expires_at"] < now]
+    for pid in expired:
+        _previews.pop(pid, None)
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +88,20 @@ async def preview_session(
     """
     Run the Planner node in isolation — no researchers, no pipeline, 0 credits.
     Returns 3 angles the user reviews before committing to a full run.
+
+    Free by design, but not unlimited: rate-limited per user so an account
+    can't be used to draw unbounded, uncosted Groq calls in a loop.
     """
+    if not check_and_record(
+        f"preview:{current_user['user_id']}", max_calls=20, window_seconds=3600
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many planning requests. Please wait a bit before trying again.",
+        )
+
+    _prune_expired_previews()
+
     preview_id = str(uuid.uuid4())
 
     state: GraphState = {
@@ -85,6 +120,7 @@ async def preview_session(
         "question": body.question,
         "angles": angles,
         "user_id": current_user["user_id"],
+        "expires_at": time.monotonic() + _PREVIEW_TTL_SECONDS,
     }
 
     return SessionPreviewOut(preview_id=preview_id, angles=angles)
@@ -108,6 +144,9 @@ async def create_session(
     Deducts 5 credits (raises 402 if insufficient). Preview is single-use.
     """
     preview = _previews.get(body.preview_id)
+    if preview and preview["expires_at"] < time.monotonic():
+        _previews.pop(body.preview_id, None)
+        preview = None
     if not preview:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -117,7 +156,7 @@ async def create_session(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your preview.")
 
     # Deduct 5 credits for the full pipeline run (402 if insufficient).
-    await spend_credits(db, current_user["user_id"], 5)
+    await spend_credits(db, current_user["user_id"], PIPELINE_RUN_COST)
 
     session = ResearchSession(
         id=str(uuid.uuid4()),
@@ -130,6 +169,11 @@ async def create_session(
     )
     db.add(session)
     await db.flush()
+
+    # session.id doubles as the run_id — authorize it so WS /ws/{session.id}
+    # (opened by the frontend right after this call) will accept the connection,
+    # and so it can be refunded if that run never delivers a report.
+    authorize_run(session.id, current_user["user_id"], PIPELINE_RUN_COST)
 
     # Preview consumed — remove so it can't be reused.
     del _previews[body.preview_id]
@@ -212,7 +256,17 @@ async def name_session(
     """
     Generate a short 3-5 word name for the session using fast_llm.
     Called by the frontend right after the report arrives. Returns { "name": ... }.
+
+    Free by design, but not unlimited — same rationale as preview_session.
     """
+    if not check_and_record(
+        f"name:{current_user['user_id']}", max_calls=20, window_seconds=3600
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Please wait a bit before trying again.",
+        )
+
     session = await _get_owned_session(db, session_id, current_user["user_id"])
 
     response = await fast_llm.ainvoke([
@@ -252,12 +306,11 @@ async def store_report(
     """
     session = await _get_owned_session(db, session_id, current_user["user_id"])
 
-    report_data = body.report
-    session.report = report_data
-    session.findings_text = " ".join(
-        f"{f.get('claim', '')} {f.get('support', '')}"
-        for f in report_data.get("key_findings", [])
-    )
+    report = body.report
+    # mode="json" so the JSON column gets plain dicts/strings, not Pydantic
+    # objects or a raw datetime (report.generated_at).
+    session.report = report.model_dump(mode="json")
+    session.findings_text = " ".join(f"{f.claim} {f.support}" for f in report.key_findings)
     session.last_active = _db_utcnow()
     await db.flush()
 

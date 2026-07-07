@@ -27,6 +27,7 @@ from chorus.config import settings
 from chorus.db.database import get_db
 from chorus.db.models import CreditLedger
 from chorus.schemas import CreditBalance, DeductRequest
+from chorus.services.run_registry import authorize as authorize_run
 
 router = APIRouter(prefix="/credits", tags=["credits"])
 
@@ -83,6 +84,25 @@ async def spend(db: AsyncSession, user_id: str, amount: int) -> int:
     return settings.daily_credits_limit - (used + amount)
 
 
+async def refund(db: AsyncSession, user_id: str, amount: int) -> None:
+    """
+    Credits back `amount` for a run that was paid for but didn't deliver a
+    report (see SECURITY.md T13) — called from the WebSocket handler, not a
+    REST endpoint, so there's no HTTP response to return here.
+
+    No-op if there's no row for today (e.g. the charge happened just before
+    UTC midnight and the refund attempt lands just after — the user's
+    balance already reset to the full daily allowance in that case, so
+    there's nothing to credit back). Floors at 0 either way so this can
+    never push usage negative.
+    """
+    row = await _get_today_row(db, user_id)
+    if row is None:
+        return
+    row.used = max(0, row.used - amount)
+    await db.flush()
+
+
 def _next_midnight_utc() -> str:
     """ISO 8601 UTC timestamp of the next UTC midnight."""
     now = datetime.now(timezone.utc)
@@ -134,6 +154,13 @@ async def deduct_credits(
     Credits are only charged after the user explicitly confirms the cost.
     """
     new_balance = await spend(db, current_user["user_id"], body.amount)
+
+    # This deduction pays for a specific pipeline run — authorize it so
+    # WS /ws/{run_id} (opened next by the frontend) will accept the connection,
+    # and so it can be refunded if that run never delivers a report.
+    if body.run_id:
+        authorize_run(body.run_id, current_user["user_id"], body.amount)
+
     return CreditBalance(
         balance=new_balance,
         limit=settings.daily_credits_limit,

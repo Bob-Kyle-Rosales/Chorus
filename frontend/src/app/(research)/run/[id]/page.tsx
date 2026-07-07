@@ -24,6 +24,7 @@ import { api } from "@/lib/api"
 import type { SessionDetail } from "@/types/events"
 
 interface PendingPipeline {
+  userMsgId: string
   msgId: string
   runId: string
   question: string
@@ -45,13 +46,15 @@ export default function RunPage() {
     addUserMessage,
     addReasoningMessage,
     addPipelineFollowUp,
+    addErrorMessage,
+    removeConversationMessage,
     setFollowUpStatus,
     rehydrateSession,
   } = useSessionStore()
 
   // Read this session's run state from the store — never local component state
   const runState = runStates[id] ?? EMPTY_RUN_STATE
-  const { status, agents, report, conversation, followUpStatus } = runState
+  const { status, agents, critique, report, errorMessage, conversation, followUpStatus } = runState
 
   const [pendingPipeline, setPendingPipeline] = useState<PendingPipeline | null>(null)
   const [rehydrating, setRehydrating] = useState(false)
@@ -112,10 +115,12 @@ export default function RunPage() {
   }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Follow-up submission ────────────────────────────────────────────
+  // The user message is shown immediately for responsiveness, but only
+  // persisted once we know it actually gets an answer — that way a failed
+  // or cancelled attempt never leaves a ghost row in the database.
   async function handleFollowUp(q: string) {
     const msgId = Date.now().toString()
     addUserMessage(id, msgId, q)
-    persistMessage({ id: msgId, role: "user", type: "user", content: q })
     setFollowUpStatus(id, "submitting")
 
     try {
@@ -124,6 +129,7 @@ export default function RunPage() {
       >(`/sessions/${id}/followup`, { question: q })
 
       if (result.type === "reasoning") {
+        persistMessage({ id: msgId, role: "user", type: "user", content: q })
         addReasoningMessage(id, `${msgId}-r`, q, result.answer)
         persistMessage({
           id: `${msgId}-r`,
@@ -138,10 +144,11 @@ export default function RunPage() {
           .then(({ balance }) => setCredits(balance))
           .catch(() => {})
       } else {
-        setPendingPipeline({ msgId: `${msgId}-p`, runId: result.run_id, question: q })
+        setPendingPipeline({ userMsgId: msgId, msgId: `${msgId}-p`, runId: result.run_id, question: q })
         setFollowUpStatus(id, "idle")
       }
     } catch {
+      addErrorMessage(id, `${msgId}-e`, "Couldn't get a response. Please try asking again.")
       setFollowUpStatus(id, "idle")
     }
   }
@@ -149,21 +156,21 @@ export default function RunPage() {
   // ── Confirm follow-up pipeline run (after CreditWarning) ───────────
   async function confirmPipeline() {
     if (!pendingPipeline) return
-    const { msgId, runId, question: q } = pendingPipeline
+    const { userMsgId, msgId, runId, question: q } = pendingPipeline
     setPendingPipeline(null)
 
     // Deduct 5 credits explicitly — the routing call did not deduct them.
     // This is the user's confirmation that they accept the cost.
     try {
-      const { balance } = await api.post<{ balance: number }>("/credits/deduct", { amount: 5 })
+      const { balance } = await api.post<{ balance: number }>("/credits/deduct", { amount: 5, run_id: runId })
       setCredits(balance)
     } catch {
-      // 402: insufficient credits — CreditWarning already shows the balance,
-      // the user shouldn't be able to confirm. Guard here just in case.
+      // 402: insufficient credits, or the balance changed since the modal opened.
+      addErrorMessage(id, `${msgId}-e`, "Couldn't start research — your credit balance may have changed. Please try again.")
       return
     }
 
-    // (the user question was already persisted in handleFollowUp)
+    persistMessage({ id: userMsgId, role: "user", type: "user", content: q })
     addPipelineFollowUp(id, msgId, q, runId)
     setFollowUpStatus(id, "active")
 
@@ -173,15 +180,38 @@ export default function RunPage() {
       if (event.type === "report.ready") {
         persistMessage({ id: msgId, role: "chorus", type: "pipeline", report: event.report })
       }
+      // A run.error from the server means the backend may have just refunded
+      // these credits (timeout / internal error — see SECURITY.md T13).
+      if (event.type === "run.error") {
+        api.get<{ balance: number }>("/credits").then(({ balance }) => setCredits(balance)).catch(() => {})
+      }
     })
-    ws.onclose = () => setFollowUpStatus(id, "idle")
+    ws.onclose = () => {
+      setFollowUpStatus(id, "idle")
+      const cur = useSessionStore.getState().runStates[id]
+      const msg = cur?.conversation.find((m) => m.id === msgId)
+      if (msg?.type === "pipeline" && msg.status === "running") {
+        handleFollowUpEvent(id, msgId, {
+          type: "run.error",
+          message: "Connection lost before this research finished.",
+        })
+      }
+    }
+  }
+
+  // Cancelling before the pipeline starts means it never happened — the
+  // question was never persisted, so just drop the optimistic bubble.
+  function cancelPipeline() {
+    if (!pendingPipeline) return
+    removeConversationMessage(id, pendingPipeline.userMsgId)
+    setPendingPipeline(null)
   }
 
   // ── Loading state while rehydrating from the database ──────────────
   if (rehydrating) {
     return (
       <div className="flex flex-1 items-center justify-center p-8">
-        <p className="animate-pulse font-mono text-sm text-white/20">Loading session...</p>
+        <p className="animate-pulse font-mono text-sm text-chorus-muted">Loading session…</p>
       </div>
     )
   }
@@ -191,10 +221,10 @@ export default function RunPage() {
   if (hasNoState && !report && conversation.length === 0 && Object.keys(agents).length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-        <p className="mb-4 text-sm text-white/30">No active research for this session.</p>
+        <p className="mb-4 text-sm text-chorus-muted">No active research for this session.</p>
         <a
           href="/home"
-          className="rounded-xl border border-white/10 px-4 py-2 text-xs text-white/40 transition-colors hover:text-white/70"
+          className="rounded-xl border border-chorus-border px-4 py-2 text-xs text-chorus-muted transition-colors hover:text-chorus-text"
         >
           Start new research
         </a>
@@ -208,7 +238,9 @@ export default function RunPage() {
         question={question}
         runStatus={status}
         agents={agents}
+        critique={critique}
         report={report}
+        errorMessage={errorMessage}
         conversation={conversation}
       />
 
@@ -216,7 +248,7 @@ export default function RunPage() {
         <CreditWarning
           creditsRemaining={credits}
           onConfirm={confirmPipeline}
-          onCancel={() => setPendingPipeline(null)}
+          onCancel={cancelPipeline}
         />
       )}
 

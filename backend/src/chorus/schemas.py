@@ -81,8 +81,13 @@ class SessionOut(BaseModel):
 
 
 class StoreReportRequest(BaseModel):
-    """Request body for PATCH /sessions/{id}/report — stores the finished report for follow-up routing."""
-    report: dict  # raw Report JSON from the frontend
+    """
+    Request body for PATCH /sessions/{id}/report — stores the finished report
+    for follow-up routing. Typed as the real Report model (not a raw dict) so
+    a malformed body is rejected by Pydantic before the handler runs, instead
+    of crashing later when findings_text is built from an unexpected shape.
+    """
+    report: "Report"
 
 
 class FollowUpRequest(BaseModel):
@@ -131,24 +136,15 @@ class CreditBalance(BaseModel):
 
 
 class DeductRequest(BaseModel):
-    """Request body for POST /credits/deduct."""
+    """
+    Request body for POST /credits/deduct.
+
+    run_id, when present, is the pipeline run this deduction pays for — it
+    gets registered in run_registry so the WebSocket at /ws/{run_id} will
+    accept it. Omitted for deductions that aren't tied to a specific run.
+    """
     amount: int = Field(gt=0, le=20)  # must be positive, max one day's worth
-
-
-# ---------------------------------------------------------------------------
-# INPUT
-# ---------------------------------------------------------------------------
-
-class RunRequest(BaseModel):
-    """
-    The request body when a user submits a question via POST /run.
-
-    Field(...) adds validation rules:
-    - min_length=3  : rejects empty or very short questions
-    - max_length=2000: prevents a massive question from being sent to the LLM
-                       (cost control + security — see SECURITY.md T5)
-    """
-    question: str = Field(min_length=3, max_length=2000)
+    run_id: str | None = None
 
 
 # ---------------------------------------------------------------------------

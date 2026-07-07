@@ -13,14 +13,46 @@
 import asyncio                          # Python's built-in async library — used for the Semaphore
 from contextlib import asynccontextmanager  # decorator that turns a generator into a context manager
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware  # handles browser cross-origin requests
 
-from chorus.config import settings      # centralized config (API keys, limits, allowed origins)
+from chorus.config import Settings, settings  # centralized config (API keys, limits, allowed origins)
 from chorus.api.routes import router
 from chorus.api.auth import router as auth_router
 from chorus.api.sessions import router as sessions_router
 from chorus.api.credits import router as credits_router
+
+log = structlog.get_logger()
+
+# Compared against the live setting at every boot — read from the Settings
+# field itself (not retyped here) so this can't quietly drift out of sync
+# with config.py.
+_DEFAULT_JWT_SECRET = Settings.model_fields["jwt_secret"].default
+
+
+def _warn_on_insecure_defaults() -> None:
+    """
+    Logs a loud, impossible-to-miss warning for config that's fine for local
+    dev but unsafe once this is reachable from the internet. Doesn't refuse
+    to boot — there's no reliable "is this actually production" signal here,
+    and a hard failure would break the zero-config local dev workflow this
+    project is built around. Never silent, though: this runs on every boot.
+    """
+    if settings.jwt_secret == _DEFAULT_JWT_SECRET:
+        log.warning(
+            "INSECURE CONFIG: JWT_SECRET is still the default dev value — "
+            "every access/refresh token is signed with a secret sitting in "
+            "public source. Set a real JWT_SECRET before this is reachable "
+            "from the internet."
+        )
+    if not settings.cookie_secure:
+        log.warning(
+            "INSECURE CONFIG: COOKIE_SECURE is not set — the refresh-token "
+            "cookie will be sent over plain HTTP. Set COOKIE_SECURE=true "
+            "once this is served over HTTPS."
+        )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,6 +73,8 @@ async def lifespan(app: FastAPI):
     from chorus.graph.graph import build_graph
     from chorus.db.database import engine, init_db
 
+    _warn_on_insecure_defaults()
+
     # Create all database tables that don't yet exist (users, sessions,
     # messages, credits_ledger). Safe to run on every boot — it only creates
     # missing tables. Uses SQLite locally, Postgres in production (DATABASE_URL).
@@ -55,6 +89,13 @@ async def lifespan(app: FastAPI):
     # max_concurrent_runs = 4 means at most 4 users' runs execute at the same time.
     # The 5th user waits in a queue until one of the 4 finishes.
     # Without this, 50 users × 3 researchers = 150 simultaneous Groq API calls → rate limit crash.
+    #
+    # This lives in process memory — it caps concurrent Groq load for THIS
+    # instance only. Running more than one instance/worker behind a load
+    # balancer gives each its own independent semaphore, so the real
+    # concurrent Groq load becomes (instances × max_concurrent_runs) with no
+    # error telling you the limit stopped meaning what it says. Fine at one
+    # instance; revisit before scaling horizontally.
     app.state.run_semaphore = asyncio.Semaphore(settings.max_concurrent_runs)
 
     yield  # server is now running and accepting requests

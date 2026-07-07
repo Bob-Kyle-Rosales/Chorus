@@ -120,8 +120,27 @@ export default function HomePage() {
           if (event.type === "report.ready" || event.type === "run.error") {
             removeConnection(session.id)
           }
+          // A run.error from the server means the backend may have just
+          // refunded these credits (timeout / internal error — see
+          // SECURITY.md T13) — resync so the balance shown is current.
+          if (event.type === "run.error") {
+            api.get<{ balance: number }>("/credits").then(({ balance }) => setCredits(balance)).catch(() => {})
+          }
         },
-        () => removeConnection(session.id), // onclose: server-side close / timeout
+        () => {
+          // onclose: server-side close / timeout / dropped network. If the
+          // run hadn't already reached a terminal state, the socket died
+          // before telling us why — surface that instead of leaving agent
+          // cards pulsing "running" forever.
+          removeConnection(session.id)
+          const cur = useSessionStore.getState().runStates[session.id]
+          if (cur && cur.status !== "complete" && cur.status !== "error") {
+            handleSessionEvent(session.id, {
+              type: "run.error",
+              message: "Connection lost before the run finished. Please start a new session.",
+            })
+          }
+        },
       )
       addConnection(session.id, ws)
 
@@ -216,7 +235,7 @@ export default function HomePage() {
               </form>
 
               {error && (
-                <p className="text-sm text-red-400">{error}</p>
+                <p className="text-sm text-destructive">{error}</p>
               )}
 
               {/* Example prompts */}
