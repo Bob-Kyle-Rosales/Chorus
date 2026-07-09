@@ -3,10 +3,22 @@
 // at their respective horizontal positions. Researcher I/II/III share
 // the same x position at different staff lines, and both branch from
 // Planner and converge into Critic — the geometry itself shows that
-// the three researchers run concurrently, not in sequence.
+// the three researchers run concurrently, not in sequence. A small dot
+// travels along each connector on a staggered loop to reinforce that
+// this is a live, running pipeline, not a static chart.
 interface PipelineVizProps {
   maxWidth?: number
 }
+
+const CONNECTORS: { id: string; d: string; begin: number }[] = [
+  { id: "pv-c1", d: "M110,112 L175,68", begin: 0 },
+  { id: "pv-c2", d: "M110,112 L175,112", begin: 0.15 },
+  { id: "pv-c3", d: "M110,112 L175,156", begin: 0.3 },
+  { id: "pv-c4", d: "M265,68 L320,112", begin: 1 },
+  { id: "pv-c5", d: "M265,112 L320,112", begin: 1.15 },
+  { id: "pv-c6", d: "M265,156 L320,112", begin: 1.3 },
+  { id: "pv-c7", d: "M400,112 L450,112", begin: 2 },
+]
 
 export function PipelineViz({ maxWidth = 560 }: PipelineVizProps) {
   const width = 560
@@ -51,6 +63,18 @@ export function PipelineViz({ maxWidth = 560 }: PipelineVizProps) {
       <line x1={265} y1={lines[3]} x2={320} y2={lines[2]} stroke={lineColor} strokeWidth={1} strokeDasharray="3 3" />
       {/* Critic → Synthesizer */}
       <line x1={400} y1={lines[2]} x2={450} y2={lines[2]} stroke={lineColor} strokeWidth={1} strokeDasharray="3 3" />
+
+      {/* Invisible paths (motion guides) + traveling pulse dots, one per connector */}
+      {CONNECTORS.map((c) => (
+        <path key={c.id} id={c.id} d={c.d} fill="none" stroke="none" />
+      ))}
+      {CONNECTORS.map((c) => (
+        <circle key={`${c.id}-dot`} r={3} fill={nodeColor} opacity={0.9}>
+          <animateMotion dur="2s" begin={`${c.begin}s`} repeatCount="indefinite">
+            <mpath href={`#${c.id}`} />
+          </animateMotion>
+        </circle>
+      ))}
 
       {/* Agent nodes */}
       {nodes.map(([label, x, lineIdx]) => {
