@@ -47,34 +47,34 @@ export default function SignInPage() {
     <main className="flex min-h-screen" style={{ background: "var(--chorus-bg)" }}>
       <AuthBrandPanel variant="signin" />
 
-      <div className="flex flex-1 flex-col items-center justify-center p-6">
-        <div className="w-full max-w-sm space-y-8">
+      <div className="flex flex-1 flex-col items-center justify-center p-8">
+        <div className="w-full max-w-md space-y-10">
           <Link
             href="/"
-            className="block text-2xl tracking-wide transition-opacity hover:opacity-70"
+            className="block text-3xl tracking-wide transition-opacity hover:opacity-70"
             style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
           >
             Chorus
           </Link>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div>
               <h1
-                className="text-xl font-medium"
+                className="text-2xl font-medium"
                 style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
               >
                 Sign in
               </h1>
-              <p className="mt-1 text-sm" style={{ color: "var(--chorus-muted)" }}>
+              <p className="mt-1.5 text-base" style={{ color: "var(--chorus-muted)" }}>
                 Welcome back
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
                 <label
                   htmlFor="email"
-                  className="font-mono text-xs tracking-widest uppercase"
+                  className="font-mono text-sm tracking-widest uppercase"
                   style={{ color: "var(--chorus-muted)" }}
                 >
                   Email
@@ -88,7 +88,7 @@ export default function SignInPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email Address"
-                  className="w-full rounded px-4 py-2.5 text-sm transition-colors outline-none"
+                  className="w-full rounded px-5 py-3.5 text-base transition-colors outline-none"
                   style={{
                     background: "var(--chorus-bg)",
                     border: "1px solid var(--chorus-border)",
@@ -99,10 +99,10 @@ export default function SignInPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label
                   htmlFor="password"
-                  className="font-mono text-xs tracking-widest uppercase"
+                  className="font-mono text-sm tracking-widest uppercase"
                   style={{ color: "var(--chorus-muted)" }}
                 >
                   Password
@@ -116,7 +116,7 @@ export default function SignInPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full rounded px-4 py-2.5 pr-14 text-sm transition-colors outline-none"
+                    className="w-full rounded px-5 py-3.5 pr-16 text-base transition-colors outline-none"
                     style={{
                       background: "var(--chorus-bg)",
                       border: "1px solid var(--chorus-border)",
@@ -128,7 +128,7 @@ export default function SignInPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute top-1/2 right-3 -translate-y-1/2 text-xs transition-opacity hover:opacity-80"
+                    className="absolute top-1/2 right-4 -translate-y-1/2 text-sm transition-opacity hover:opacity-80"
                     style={{ color: "var(--chorus-muted)" }}
                   >
                     {showPassword ? "Hide" : "Show"}
@@ -137,7 +137,7 @@ export default function SignInPage() {
               </div>
 
               {error && (
-                <p className="rounded border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <p className="rounded border border-destructive/30 bg-destructive/10 px-5 py-3.5 text-base text-destructive">
                   {error}
                 </p>
               )}
@@ -145,14 +145,14 @@ export default function SignInPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded py-2.5 text-sm font-medium transition-opacity disabled:opacity-50"
+                className="w-full rounded py-3.5 text-base font-medium transition-opacity disabled:opacity-50"
                 style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
               >
                 {loading ? "Signing in…" : "Sign in"}
               </button>
             </form>
 
-            <p className="text-center text-sm" style={{ color: "var(--chorus-muted)" }}>
+            <p className="text-center text-base" style={{ color: "var(--chorus-muted)" }}>
               No account?{" "}
               <Link
                 href="/auth/signup"

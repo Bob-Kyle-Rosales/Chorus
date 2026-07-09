@@ -82,35 +82,35 @@ export default function SignUpPage() {
     <main className="flex min-h-screen" style={{ background: "var(--chorus-bg)" }}>
       <AuthBrandPanel variant="signup" />
 
-      <div className="flex flex-1 flex-col items-center justify-center p-6">
-        <div className="w-full max-w-sm space-y-8">
+      <div className="flex flex-1 flex-col items-center justify-center p-8">
+        <div className="w-full max-w-md space-y-10">
           <Link
             href="/"
-            className="block text-2xl tracking-wide transition-opacity hover:opacity-70"
+            className="block text-3xl tracking-wide transition-opacity hover:opacity-70"
             style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
           >
             Chorus
           </Link>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div>
               <h1
-                className="text-xl font-medium"
+                className="text-2xl font-medium"
                 style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
               >
                 Create account
               </h1>
-              <p className="mt-1 text-sm" style={{ color: "var(--chorus-muted)" }}>
+              <p className="mt-1.5 text-base" style={{ color: "var(--chorus-muted)" }}>
                 Free tier — 20 credits per day
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <label
                     htmlFor="firstName"
-                    className="font-mono text-xs tracking-widest uppercase"
+                    className="font-mono text-sm tracking-widest uppercase"
                     style={{ color: "var(--chorus-muted)" }}
                   >
                     First name
@@ -124,16 +124,16 @@ export default function SignUpPage() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="First Name"
-                    className="w-full rounded px-4 py-2.5 text-sm outline-none"
+                    className="w-full rounded px-5 py-3.5 text-base outline-none"
                     style={inputStyle}
                     onFocus={handleFocus}
                     onBlur={handleBlur}
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label
                     htmlFor="lastName"
-                    className="font-mono text-xs tracking-widest uppercase"
+                    className="font-mono text-sm tracking-widest uppercase"
                     style={{ color: "var(--chorus-muted)" }}
                   >
                     Last name
@@ -146,7 +146,7 @@ export default function SignUpPage() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="Last Name"
-                    className="w-full rounded px-4 py-2.5 text-sm outline-none"
+                    className="w-full rounded px-5 py-3.5 text-base outline-none"
                     style={inputStyle}
                     onFocus={handleFocus}
                     onBlur={handleBlur}
@@ -154,10 +154,10 @@ export default function SignUpPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label
                   htmlFor="email"
-                  className="font-mono text-xs tracking-widest uppercase"
+                  className="font-mono text-sm tracking-widest uppercase"
                   style={{ color: "var(--chorus-muted)" }}
                 >
                   Email
@@ -170,17 +170,17 @@ export default function SignUpPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email Address"
-                  className="w-full rounded px-4 py-2.5 text-sm outline-none"
+                  className="w-full rounded px-5 py-3.5 text-base outline-none"
                   style={inputStyle}
                   onFocus={handleFocus}
                   onBlur={handleBlur}
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label
                   htmlFor="password"
-                  className="font-mono text-xs tracking-widest uppercase"
+                  className="font-mono text-sm tracking-widest uppercase"
                   style={{ color: "var(--chorus-muted)" }}
                 >
                   Password
@@ -194,7 +194,7 @@ export default function SignUpPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password"
-                    className="w-full rounded px-4 py-2.5 pr-14 text-sm outline-none"
+                    className="w-full rounded px-5 py-3.5 pr-16 text-base outline-none"
                     style={inputStyle}
                     onFocus={handleFocus}
                     onBlur={handleBlur}
@@ -202,21 +202,21 @@ export default function SignUpPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute top-1/2 right-3 -translate-y-1/2 text-xs transition-opacity hover:opacity-80"
+                    className="absolute top-1/2 right-4 -translate-y-1/2 text-sm transition-opacity hover:opacity-80"
                     style={{ color: "var(--chorus-muted)" }}
                   >
                     {showPassword ? "Hide" : "Show"}
                   </button>
                 </div>
                 {passwordTooShort && (
-                  <p className="text-xs text-destructive">At least 8 characters</p>
+                  <p className="text-sm text-destructive">At least 8 characters</p>
                 )}
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label
                   htmlFor="confirm"
-                  className="font-mono text-xs tracking-widest uppercase"
+                  className="font-mono text-sm tracking-widest uppercase"
                   style={{ color: "var(--chorus-muted)" }}
                 >
                   Confirm password
@@ -230,7 +230,7 @@ export default function SignUpPage() {
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     placeholder="Confirm Password"
-                    className="w-full rounded px-4 py-2.5 pr-14 text-sm outline-none"
+                    className="w-full rounded px-5 py-3.5 pr-16 text-base outline-none"
                     style={inputStyle}
                     onFocus={handleFocus}
                     onBlur={handleBlur}
@@ -238,19 +238,19 @@ export default function SignUpPage() {
                   <button
                     type="button"
                     onClick={() => setShowConfirm((v) => !v)}
-                    className="absolute top-1/2 right-3 -translate-y-1/2 text-xs transition-opacity hover:opacity-80"
+                    className="absolute top-1/2 right-4 -translate-y-1/2 text-sm transition-opacity hover:opacity-80"
                     style={{ color: "var(--chorus-muted)" }}
                   >
                     {showConfirm ? "Hide" : "Show"}
                   </button>
                 </div>
                 {confirmMismatch && (
-                  <p className="text-xs text-destructive">Passwords don&apos;t match</p>
+                  <p className="text-sm text-destructive">Passwords don&apos;t match</p>
                 )}
               </div>
 
               {error && (
-                <p className="rounded border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <p className="rounded border border-destructive/30 bg-destructive/10 px-5 py-3.5 text-base text-destructive">
                   {error}
                 </p>
               )}
@@ -258,14 +258,14 @@ export default function SignUpPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded py-2.5 text-sm font-medium transition-opacity disabled:opacity-50"
+                className="w-full rounded py-3.5 text-base font-medium transition-opacity disabled:opacity-50"
                 style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
               >
                 {loading ? "Creating account…" : "Create account"}
               </button>
             </form>
 
-            <p className="text-center text-sm" style={{ color: "var(--chorus-muted)" }}>
+            <p className="text-center text-base" style={{ color: "var(--chorus-muted)" }}>
               Already have an account?{" "}
               <Link
                 href="/auth/signin"
