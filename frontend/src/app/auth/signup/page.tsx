@@ -100,9 +100,6 @@ export default function SignUpPage() {
               >
                 Create account
               </h1>
-              <p className="mt-1.5 text-base" style={{ color: "var(--chorus-muted)" }}>
-                Free tier — 20 credits per day
-              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">

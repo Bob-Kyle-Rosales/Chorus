@@ -22,9 +22,9 @@ export function AuthBrandPanel({ variant }: AuthBrandPanelProps) {
       <PipelineViz maxWidth={680} />
 
       {variant === "signup" ? (
-        <>
+        <div className="flex flex-col gap-3">
           <span
-            className="mt-2 self-start rounded px-3.5 py-2 font-mono text-base"
+            className="self-start rounded px-3.5 py-2 font-mono text-base"
             style={{
               color: "var(--chorus-gold)",
               background: "rgba(201,162,74,0.1)",
@@ -41,7 +41,7 @@ export function AuthBrandPanel({ variant }: AuthBrandPanelProps) {
             <br />
             <em style={{ color: "var(--chorus-gold)" }}>one truth.</em>
           </h2>
-          <div className="mt-2 flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
             <p className="text-lg leading-relaxed" style={{ color: "var(--chorus-muted)" }}>
               ✓ Parallel researchers investigate independently
             </p>
@@ -52,11 +52,11 @@ export function AuthBrandPanel({ variant }: AuthBrandPanelProps) {
               ✓ Cited, structured reports — not just prose
             </p>
           </div>
-        </>
+        </div>
       ) : (
-        <>
+        <div className="flex flex-col gap-3">
           <h2
-            className="mt-2 text-4xl"
+            className="text-4xl"
             style={{ fontFamily: "var(--font-heading)", color: "var(--chorus-text)" }}
           >
             Built to be understood.
@@ -66,7 +66,7 @@ export function AuthBrandPanel({ variant }: AuthBrandPanelProps) {
             instruction — every report you read has already been challenged before
             it reached you.
           </p>
-        </>
+        </div>
       )}
     </div>
   )
