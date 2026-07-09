@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useSessionStore, EMPTY_RUN_STATE } from "@/lib/store"
 import { api, ApiError } from "@/lib/api"
 import { createRunSocket } from "@/lib/websocket"
+import { AuroraBackground } from "@/components/AuroraBackground"
 import { AnglePreview } from "@/components/AnglePreview"
 import { ConcurrentRunWarning } from "@/components/ConcurrentRunWarning"
 import type { AnglePlan, Session } from "@/types/events"
@@ -164,10 +165,12 @@ export default function HomePage() {
 
   return (
     <main
-      className="flex min-h-full flex-1 flex-col items-center justify-center p-8"
+      className="relative flex min-h-full flex-1 flex-col items-center justify-center overflow-hidden p-8"
       style={{ background: "var(--chorus-bg)" }}
     >
-      <div className="w-full max-w-2xl space-y-8">
+      <AuroraBackground intensity="faint" />
+
+      <div className="relative z-10 w-full max-w-2xl space-y-8">
         <AnimatePresence mode="wait">
           {/* ── Input / planning ── */}
           {!showPreview && (
