@@ -1,11 +1,22 @@
+// frontend/src/app/auth/signin/page.tsx
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
 import { api, ApiError } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth-store"
 import { AuthBrandPanel } from "@/components/AuthBrandPanel"
+
+const formContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+}
+const formItem = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+}
 
 export default function SignInPage() {
   const router = useRouter()
@@ -70,8 +81,14 @@ export default function SignInPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
+            <motion.form
+              onSubmit={handleSubmit}
+              className="space-y-5"
+              variants={formContainer}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div variants={formItem} className="space-y-2">
                 <label
                   htmlFor="email"
                   className="font-mono text-sm tracking-widest uppercase"
@@ -79,7 +96,7 @@ export default function SignInPage() {
                 >
                   Email
                 </label>
-                <input
+                <motion.input
                   id="email"
                   type="email"
                   autoComplete="email"
@@ -88,18 +105,19 @@ export default function SignInPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email Address"
-                  className="w-full rounded px-5 py-3.5 text-base transition-colors outline-none"
+                  className="w-full rounded px-5 py-3.5 text-base outline-none"
                   style={{
                     background: "var(--chorus-bg)",
-                    border: "1px solid var(--chorus-border)",
+                    borderWidth: 1,
+                    borderStyle: "solid",
+                    borderColor: "var(--chorus-border)",
                     color: "var(--chorus-text)",
                   }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = "var(--chorus-gold)")}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--chorus-border)")}
+                  whileFocus={{ borderColor: "var(--chorus-gold)", boxShadow: "0 0 0 3px rgba(201,162,74,0.15)" }}
                 />
-              </div>
+              </motion.div>
 
-              <div className="space-y-2">
+              <motion.div variants={formItem} className="space-y-2">
                 <label
                   htmlFor="password"
                   className="font-mono text-sm tracking-widest uppercase"
@@ -108,7 +126,7 @@ export default function SignInPage() {
                   Password
                 </label>
                 <div className="relative">
-                  <input
+                  <motion.input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
@@ -116,14 +134,15 @@ export default function SignInPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full rounded px-5 py-3.5 pr-16 text-base transition-colors outline-none"
+                    className="w-full rounded px-5 py-3.5 pr-16 text-base outline-none"
                     style={{
                       background: "var(--chorus-bg)",
-                      border: "1px solid var(--chorus-border)",
+                      borderWidth: 1,
+                      borderStyle: "solid",
+                      borderColor: "var(--chorus-border)",
                       color: "var(--chorus-text)",
                     }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = "var(--chorus-gold)")}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = "var(--chorus-border)")}
+                    whileFocus={{ borderColor: "var(--chorus-gold)", boxShadow: "0 0 0 3px rgba(201,162,74,0.15)" }}
                   />
                   <button
                     type="button"
@@ -134,7 +153,7 @@ export default function SignInPage() {
                     {showPassword ? "Hide" : "Show"}
                   </button>
                 </div>
-              </div>
+              </motion.div>
 
               {error && (
                 <p className="rounded border border-destructive/30 bg-destructive/10 px-5 py-3.5 text-base text-destructive">
@@ -142,15 +161,18 @@ export default function SignInPage() {
                 </p>
               )}
 
-              <button
+              <motion.button
+                variants={formItem}
                 type="submit"
                 disabled={loading}
-                className="w-full rounded py-3.5 text-base font-medium transition-opacity disabled:opacity-50"
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full rounded py-3.5 text-base font-medium disabled:opacity-50"
                 style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
               >
                 {loading ? "Signing in…" : "Sign in"}
-              </button>
-            </form>
+              </motion.button>
+            </motion.form>
 
             <p className="text-center text-base" style={{ color: "var(--chorus-muted)" }}>
               No account?{" "}
