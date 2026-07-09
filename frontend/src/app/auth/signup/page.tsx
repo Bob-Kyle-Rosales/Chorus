@@ -1,11 +1,31 @@
+// frontend/src/app/auth/signup/page.tsx
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { motion, easeOut } from "framer-motion"
 import { api, ApiError } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth-store"
 import { AuthBrandPanel } from "@/components/AuthBrandPanel"
+
+const formContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06 } },
+}
+const formItem = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: easeOut } },
+}
+
+const inputBaseStyle = {
+  background: "var(--chorus-bg)",
+  borderWidth: 1,
+  borderStyle: "solid" as const,
+  borderColor: "#2a3644",
+  color: "var(--chorus-text)",
+}
+const inputFocusGlow = { borderColor: "#c9a24a", boxShadow: "0 0 0 3px rgba(201,162,74,0.15)" }
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -65,19 +85,6 @@ export default function SignUpPage() {
     }
   }
 
-  const inputStyle = {
-    background: "var(--chorus-bg)",
-    border: "1px solid var(--chorus-border)",
-    color: "var(--chorus-text)",
-  }
-
-  function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
-    e.currentTarget.style.borderColor = "var(--chorus-gold)"
-  }
-  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
-    e.currentTarget.style.borderColor = "var(--chorus-border)"
-  }
-
   return (
     <main className="flex min-h-screen" style={{ background: "var(--chorus-bg)" }}>
       <AuthBrandPanel variant="signup" />
@@ -102,8 +109,14 @@ export default function SignUpPage() {
               </h1>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+            <motion.form
+              onSubmit={handleSubmit}
+              className="space-y-5"
+              variants={formContainer}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div variants={formItem} className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label
                     htmlFor="firstName"
@@ -112,7 +125,7 @@ export default function SignUpPage() {
                   >
                     First name
                   </label>
-                  <input
+                  <motion.input
                     id="firstName"
                     type="text"
                     autoComplete="given-name"
@@ -122,9 +135,8 @@ export default function SignUpPage() {
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="First Name"
                     className="w-full rounded px-5 py-3.5 text-base outline-none"
-                    style={inputStyle}
-                    onFocus={handleFocus}
-                    onBlur={handleBlur}
+                    style={inputBaseStyle}
+                    whileFocus={inputFocusGlow}
                   />
                 </div>
                 <div className="space-y-2">
@@ -135,7 +147,7 @@ export default function SignUpPage() {
                   >
                     Last name
                   </label>
-                  <input
+                  <motion.input
                     id="lastName"
                     type="text"
                     autoComplete="family-name"
@@ -144,14 +156,13 @@ export default function SignUpPage() {
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="Last Name"
                     className="w-full rounded px-5 py-3.5 text-base outline-none"
-                    style={inputStyle}
-                    onFocus={handleFocus}
-                    onBlur={handleBlur}
+                    style={inputBaseStyle}
+                    whileFocus={inputFocusGlow}
                   />
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="space-y-2">
+              <motion.div variants={formItem} className="space-y-2">
                 <label
                   htmlFor="email"
                   className="font-mono text-sm tracking-widest uppercase"
@@ -159,7 +170,7 @@ export default function SignUpPage() {
                 >
                   Email
                 </label>
-                <input
+                <motion.input
                   id="email"
                   type="email"
                   autoComplete="email"
@@ -168,13 +179,12 @@ export default function SignUpPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email Address"
                   className="w-full rounded px-5 py-3.5 text-base outline-none"
-                  style={inputStyle}
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
+                  style={inputBaseStyle}
+                  whileFocus={inputFocusGlow}
                 />
-              </div>
+              </motion.div>
 
-              <div className="space-y-2">
+              <motion.div variants={formItem} className="space-y-2">
                 <label
                   htmlFor="password"
                   className="font-mono text-sm tracking-widest uppercase"
@@ -183,7 +193,7 @@ export default function SignUpPage() {
                   Password
                 </label>
                 <div className="relative">
-                  <input
+                  <motion.input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
@@ -192,9 +202,8 @@ export default function SignUpPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password"
                     className="w-full rounded px-5 py-3.5 pr-16 text-base outline-none"
-                    style={inputStyle}
-                    onFocus={handleFocus}
-                    onBlur={handleBlur}
+                    style={inputBaseStyle}
+                    whileFocus={inputFocusGlow}
                   />
                   <button
                     type="button"
@@ -208,9 +217,9 @@ export default function SignUpPage() {
                 {passwordTooShort && (
                   <p className="text-sm text-destructive">At least 8 characters</p>
                 )}
-              </div>
+              </motion.div>
 
-              <div className="space-y-2">
+              <motion.div variants={formItem} className="space-y-2">
                 <label
                   htmlFor="confirm"
                   className="font-mono text-sm tracking-widest uppercase"
@@ -219,7 +228,7 @@ export default function SignUpPage() {
                   Confirm password
                 </label>
                 <div className="relative">
-                  <input
+                  <motion.input
                     id="confirm"
                     type={showConfirm ? "text" : "password"}
                     autoComplete="new-password"
@@ -228,9 +237,8 @@ export default function SignUpPage() {
                     onChange={(e) => setConfirm(e.target.value)}
                     placeholder="Confirm Password"
                     className="w-full rounded px-5 py-3.5 pr-16 text-base outline-none"
-                    style={inputStyle}
-                    onFocus={handleFocus}
-                    onBlur={handleBlur}
+                    style={inputBaseStyle}
+                    whileFocus={inputFocusGlow}
                   />
                   <button
                     type="button"
@@ -244,7 +252,7 @@ export default function SignUpPage() {
                 {confirmMismatch && (
                   <p className="text-sm text-destructive">Passwords don&apos;t match</p>
                 )}
-              </div>
+              </motion.div>
 
               {error && (
                 <p className="rounded border border-destructive/30 bg-destructive/10 px-5 py-3.5 text-base text-destructive">
@@ -252,15 +260,18 @@ export default function SignUpPage() {
                 </p>
               )}
 
-              <button
+              <motion.button
+                variants={formItem}
                 type="submit"
                 disabled={loading}
-                className="w-full rounded py-3.5 text-base font-medium transition-opacity disabled:opacity-50"
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full rounded py-3.5 text-base font-medium disabled:opacity-50"
                 style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
               >
                 {loading ? "Creating account…" : "Create account"}
-              </button>
-            </form>
+              </motion.button>
+            </motion.form>
 
             <p className="text-center text-base" style={{ color: "var(--chorus-muted)" }}>
               Already have an account?{" "}
