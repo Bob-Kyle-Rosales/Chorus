@@ -1,7 +1,11 @@
-import Link from "next/link"
-import { PipelineViz } from "@/components/PipelineViz"
+"use client"
 
-// Static marketing page — no auth, no client state.
+import Link from "next/link"
+import { motion, easeOut } from "framer-motion"
+import { PipelineViz } from "@/components/PipelineViz"
+import { AuroraBackground } from "@/components/AuroraBackground"
+
+// Marketing page — client component for entrance/scroll/hover motion; no auth.
 
 const FEATURES = [
   {
@@ -30,6 +34,14 @@ const FEATURES = [
   },
 ]
 
+const heroContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+}
+const heroItem = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeOut } },
+}
 
 export default function LandingPage() {
   return (
@@ -60,61 +72,80 @@ export default function LandingPage() {
           >
             Sign in
           </Link>
-          <Link
-            href="/auth/signup"
-            className="rounded px-4 py-1.5 text-sm font-medium transition-opacity hover:opacity-80"
-            style={{
-              background: "var(--chorus-gold)",
-              color: "var(--chorus-bg)",
-            }}
-          >
-            Get started
-          </Link>
+          <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} className="inline-block">
+            <Link
+              href="/auth/signup"
+              className="block rounded px-4 py-1.5 text-sm font-medium transition-opacity hover:opacity-80"
+              style={{
+                background: "var(--chorus-gold)",
+                color: "var(--chorus-bg)",
+              }}
+            >
+              Get started
+            </Link>
+          </motion.div>
         </div>
       </nav>
 
       {/* ── Hero ── */}
-      <section className="px-8 pt-40 pb-24 text-center">
-        <div className="mx-auto max-w-3xl space-y-6">
-          <p
+      <section className="relative overflow-hidden px-8 pt-40 pb-24 text-center">
+        <AuroraBackground intensity="bold" />
+
+        <motion.div
+          className="relative z-10 mx-auto max-w-3xl space-y-6"
+          variants={heroContainer}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.p
+            variants={heroItem}
             className="font-mono text-xs tracking-widest uppercase"
             style={{ color: "var(--chorus-muted)" }}
           >
             Multi-agent AI research
-          </p>
-          <h1
+          </motion.p>
+          <motion.h1
+            variants={heroItem}
             className="text-6xl leading-tight font-light"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             Multiple voices,
             <br />
             <em style={{ color: "var(--chorus-gold)" }}>one truth.</em>
-          </h1>
-          <p className="mx-auto max-w-xl text-lg leading-relaxed" style={{ color: "var(--chorus-muted)" }}>
+          </motion.h1>
+          <motion.p
+            variants={heroItem}
+            className="mx-auto max-w-xl text-lg leading-relaxed"
+            style={{ color: "var(--chorus-muted)" }}
+          >
             Chorus dispatches parallel AI researchers to investigate your question from independent
             angles, pits them against a dedicated Critic, and synthesizes a structured report with
             confidence ratings and cited sources.
-          </p>
-          <div className="flex items-center justify-center gap-4 pt-2">
-            <Link
-              href="/auth/signup"
-              className="rounded px-7 py-3 text-sm font-medium transition-opacity hover:opacity-80"
-              style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
-            >
-              Start researching
-            </Link>
-            <Link
-              href="/auth/signin"
-              className="rounded border px-7 py-3 text-sm transition-opacity hover:opacity-70"
-              style={{ borderColor: "var(--chorus-border)", color: "var(--chorus-muted)" }}
-            >
-              Sign in
-            </Link>
-          </div>
-        </div>
+          </motion.p>
+          <motion.div variants={heroItem} className="flex items-center justify-center gap-4 pt-2">
+            <motion.div whileHover={{ y: -3, boxShadow: "0 8px 24px rgba(201,162,74,0.35)" }} whileTap={{ scale: 0.97 }} className="inline-block rounded">
+              <Link
+                href="/auth/signup"
+                className="block rounded px-7 py-3 text-sm font-medium"
+                style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
+              >
+                Start researching
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }} className="inline-block rounded">
+              <Link
+                href="/auth/signin"
+                className="block rounded border px-7 py-3 text-sm transition-opacity hover:opacity-70"
+                style={{ borderColor: "var(--chorus-border)", color: "var(--chorus-muted)" }}
+              >
+                Sign in
+              </Link>
+            </motion.div>
+          </motion.div>
+        </motion.div>
 
         {/* Staff-line pipeline visualization */}
-        <div className="mx-auto mt-20 max-w-2xl">
+        <div className="relative z-10 mx-auto mt-20 max-w-2xl">
           <PipelineViz />
         </div>
       </section>
@@ -124,7 +155,13 @@ export default function LandingPage() {
         className="px-8 py-24"
         style={{ borderTop: "1px solid var(--chorus-border)" }}
       >
-        <div className="mx-auto max-w-5xl">
+        <motion.div
+          className="mx-auto max-w-5xl"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.5 }}
+        >
           <div className="mb-14 text-center">
             <p
               className="mb-3 font-mono text-xs tracking-widest uppercase"
@@ -140,11 +177,16 @@ export default function LandingPage() {
             </h2>
           </div>
           <div className="grid gap-px sm:grid-cols-2 lg:grid-cols-3" style={{ border: "1px solid var(--chorus-border)", background: "var(--chorus-border)" }}>
-            {FEATURES.map((f) => (
-              <div
+            {FEATURES.map((f, i) => (
+              <motion.div
                 key={f.title}
                 className="space-y-3 p-7"
                 style={{ background: "var(--chorus-surface)" }}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.4, delay: i * 0.05 }}
+                whileHover={{ y: -4, boxShadow: "0 8px 24px rgba(201,162,74,0.15)" }}
               >
                 <h3
                   className="text-base font-medium"
@@ -155,10 +197,10 @@ export default function LandingPage() {
                 <p className="text-base leading-relaxed" style={{ color: "var(--chorus-muted)" }}>
                   {f.body}
                 </p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* ── Developer section ── */}
@@ -166,7 +208,13 @@ export default function LandingPage() {
         className="px-8 py-24"
         style={{ borderTop: "1px solid var(--chorus-border)" }}
       >
-        <div className="mx-auto max-w-4xl">
+        <motion.div
+          className="mx-auto max-w-4xl"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.5 }}
+        >
           <div className="mb-12 text-center">
             <p
               className="mb-3 font-mono text-xs tracking-widest uppercase"
@@ -187,7 +235,7 @@ export default function LandingPage() {
           </div>
 
           <ArchitectureDiagram />
-        </div>
+        </motion.div>
       </section>
 
       {/* ── CTA ── */}
@@ -205,13 +253,15 @@ export default function LandingPage() {
           <p className="text-sm" style={{ color: "var(--chorus-muted)" }}>
             Free tier includes 20 research credits per day. No credit card required.
           </p>
-          <Link
-            href="/auth/signup"
-            className="inline-block rounded px-8 py-3 text-sm font-medium"
-            style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
-          >
-            Create free account
-          </Link>
+          <motion.div whileHover={{ y: -3, boxShadow: "0 8px 24px rgba(201,162,74,0.35)" }} whileTap={{ scale: 0.97 }} className="inline-block rounded">
+            <Link
+              href="/auth/signup"
+              className="block rounded px-8 py-3 text-sm font-medium"
+              style={{ background: "var(--chorus-gold)", color: "var(--chorus-bg)" }}
+            >
+              Create free account
+            </Link>
+          </motion.div>
         </div>
       </section>
 
