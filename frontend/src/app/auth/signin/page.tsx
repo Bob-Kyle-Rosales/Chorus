@@ -4,7 +4,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, easeOut } from "framer-motion"
 import { api, ApiError } from "@/lib/api"
 import { useAuthStore } from "@/lib/auth-store"
 import { AuthBrandPanel } from "@/components/AuthBrandPanel"
@@ -15,7 +15,7 @@ const formContainer = {
 }
 const formItem = {
   hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: easeOut } },
 }
 
 export default function SignInPage() {
@@ -110,10 +110,10 @@ export default function SignInPage() {
                     background: "var(--chorus-bg)",
                     borderWidth: 1,
                     borderStyle: "solid",
-                    borderColor: "var(--chorus-border)",
+                    borderColor: "#2a3644",
                     color: "var(--chorus-text)",
                   }}
-                  whileFocus={{ borderColor: "var(--chorus-gold)", boxShadow: "0 0 0 3px rgba(201,162,74,0.15)" }}
+                  whileFocus={{ borderColor: "#c9a24a", boxShadow: "0 0 0 3px rgba(201,162,74,0.15)" }}
                 />
               </motion.div>
 
@@ -139,10 +139,10 @@ export default function SignInPage() {
                       background: "var(--chorus-bg)",
                       borderWidth: 1,
                       borderStyle: "solid",
-                      borderColor: "var(--chorus-border)",
+                      borderColor: "#2a3644",
                       color: "var(--chorus-text)",
                     }}
-                    whileFocus={{ borderColor: "var(--chorus-gold)", boxShadow: "0 0 0 3px rgba(201,162,74,0.15)" }}
+                    whileFocus={{ borderColor: "#c9a24a", boxShadow: "0 0 0 3px rgba(201,162,74,0.15)" }}
                   />
                   <button
                     type="button"
