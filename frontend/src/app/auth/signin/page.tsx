@@ -106,6 +106,9 @@ export default function SignInPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email Address"
                   className="w-full rounded px-5 py-3.5 text-base outline-none"
+                  // Literal hex mirrors --chorus-border/--chorus-gold (globals.css) —
+                  // framer-motion can't tween whileFocus between unresolved CSS
+                  // custom properties, so these stay literal (same on the password field below).
                   style={{
                     background: "var(--chorus-bg)",
                     borderWidth: 1,
@@ -135,6 +138,7 @@ export default function SignInPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     className="w-full rounded px-5 py-3.5 pr-16 text-base outline-none"
+                    // Same literal-hex rationale as the email field above.
                     style={{
                       background: "var(--chorus-bg)",
                       borderWidth: 1,

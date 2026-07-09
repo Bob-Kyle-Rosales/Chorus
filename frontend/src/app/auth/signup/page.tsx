@@ -18,6 +18,9 @@ const formItem = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: easeOut } },
 }
 
+// Literal hex mirrors --chorus-border/--chorus-gold (globals.css) — framer-motion
+// can't tween a whileFocus animation between unresolved CSS custom properties,
+// so these must stay literal. Update alongside the token if it ever changes.
 const inputBaseStyle = {
   background: "var(--chorus-bg)",
   borderWidth: 1,
