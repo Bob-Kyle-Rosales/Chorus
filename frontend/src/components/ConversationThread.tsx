@@ -6,6 +6,7 @@ import { CritiqueView } from "@/components/CritiqueView"
 import { ReportView } from "@/components/ReportView"
 import { ReasoningResponse } from "@/components/ReasoningResponse"
 import { PipelineFollowUp } from "@/components/PipelineFollowUp"
+import { PipelineStatusStrip } from "@/components/PipelineStatusStrip"
 import type { AgentState, ConversationMessage, Critique, Report } from "@/types/events"
 
 interface ConversationThreadProps {
@@ -59,6 +60,7 @@ export function ConversationThread({
           {/* Agent cards */}
           {agentList.length > 0 && (
             <section className="space-y-3">
+              <PipelineStatusStrip agents={agents} critique={critique} report={report} />
               <p
                 className="font-mono text-xs tracking-widest uppercase"
                 style={{ color: "var(--chorus-muted)" }}
