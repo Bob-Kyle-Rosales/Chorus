@@ -3,6 +3,7 @@
 import { ReportView } from "@/components/ReportView"
 import { AgentCard } from "@/components/AgentCard"
 import { CritiqueView } from "@/components/CritiqueView"
+import { PipelineStatusStrip } from "@/components/PipelineStatusStrip"
 import type { PipelineMessage } from "@/types/events"
 
 export function PipelineFollowUp({ message }: { message: PipelineMessage }) {
@@ -10,11 +11,14 @@ export function PipelineFollowUp({ message }: { message: PipelineMessage }) {
     <div className="space-y-6">
       {/* Agent cards if present */}
       {Object.keys(message.agents).length > 0 && (
-        <div className="grid gap-3 md:grid-cols-2">
-          {Object.values(message.agents).map((agent) => (
-            <AgentCard key={agent.agent_id} agent={agent} />
-          ))}
-        </div>
+        <>
+          <PipelineStatusStrip agents={message.agents} critique={message.critique} report={message.report} />
+          <div className="grid gap-3 md:grid-cols-2">
+            {Object.values(message.agents).map((agent) => (
+              <AgentCard key={agent.agent_id} agent={agent} />
+            ))}
+          </div>
+        </>
       )}
 
       {/* Critique — surfaced explicitly, not folded into the report's prose */}
