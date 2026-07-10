@@ -176,8 +176,19 @@ src/
 │       └── run/[id]/page.tsx        conversation thread (pure view of store state)
 │
 ├── components/
-│   ├── AgentCard.tsx                 full agent card — original run
-│   ├── MiniAgentCard.tsx              compact agent row — follow-up pipeline
+│   ├── AgentCard.tsx                 full agent card — breathing glow + streaming
+│   │                                  cursor while running, used by both the
+│   │                                  original run and follow-up pipeline runs
+│   ├── PipelineStatusStrip.tsx        live stage strip (Planner → Researchers →
+│   │                                  Critic → Synthesizer), derived from agent/
+│   │                                  critique/report state — no new WS events
+│   ├── PipelineViz.tsx                static staff-line pipeline diagram (landing
+│   │                                  page + auth brand panel) with a looping
+│   │                                  pulse showing the fan-out/fan-in is live
+│   ├── AuroraBackground.tsx           animated glow background (landing hero,
+│   │                                  auth brand panel, faint on /home)
+│   ├── AuthBrandPanel.tsx             left-column brand panel on the split-screen
+│   │                                  sign in/up pages
 │   ├── AnglePreview.tsx               3 angle cards before committing to a run
 │   ├── SessionSidebar.tsx             session list, credits, active-run indicator
 │   ├── ConversationThread.tsx         scrollable thread, auto-scrolls on new messages
@@ -188,7 +199,8 @@ src/
 │   ├── FindingCard.tsx                 single finding + confidence badge
 │   ├── ContestedPoint.tsx              disagreement between researchers
 │   ├── SourcesList.tsx                 numbered, clickable sources
-│   ├── CreditCounter.tsx / CreditWarning.tsx / ConcurrentRunWarning.tsx
+│   ├── CreditWarning.tsx / ConcurrentRunWarning.tsx
+│   ├── MiniAgentCard.tsx / CreditCounter.tsx    unused — not currently wired into any page
 │   └── ui/                            shadcn/ui primitives (badge, button, card, input)
 │
 ├── lib/
