@@ -30,3 +30,6 @@ Thumbs.db
 *.db
 backend/chorus.db
 backend/test_chorus.db
+
+# Claude Code superpowers — brainstorming session scratch files
+.superpowers/
