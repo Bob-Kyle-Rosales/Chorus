@@ -1,13 +1,16 @@
+// frontend/src/components/AgentCard.tsx
 "use client"
 
 import { useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { AGENT_ACCENT, AGENT_LABEL } from "@/lib/agentDisplay"
+import { AGENT_ACCENT, AGENT_GLOW_SHADOW, AGENT_LABEL } from "@/lib/agentDisplay"
 import type { AgentState } from "@/types/events"
 
 export function AgentCard({ agent }: { agent: AgentState }) {
   const accent = AGENT_ACCENT[agent.agent_id] ?? "var(--chorus-muted)"
   const label = AGENT_LABEL[agent.agent_id] ?? agent.agent_id
+  const [dimGlow, brightGlow] = AGENT_GLOW_SHADOW[agent.agent_id] ?? ["none", "none"]
+  const isRunning = agent.status === "running"
   const streamRef = useRef<HTMLPreElement>(null)
 
   useEffect(() => {
@@ -18,8 +21,16 @@ export function AgentCard({ agent }: { agent: AgentState }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      animate={{
+        opacity: 1,
+        y: 0,
+        boxShadow: isRunning ? [dimGlow, brightGlow, dimGlow] : "none",
+      }}
+      transition={{
+        opacity: { duration: 0.3 },
+        y: { duration: 0.3 },
+        boxShadow: isRunning ? { duration: 1.6, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 },
+      }}
       className="flex flex-col rounded"
       style={{
         background: "var(--chorus-surface)",
@@ -58,6 +69,7 @@ export function AgentCard({ agent }: { agent: AgentState }) {
           style={{ color: "var(--chorus-muted)" }}
         >
           {agent.tokens || (agent.status === "finished" ? "Done." : "Waiting…")}
+          {isRunning && <span className="animate-pulse">▍</span>}
         </pre>
       </div>
     </motion.div>
